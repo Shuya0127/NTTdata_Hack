@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 APIはセキュリティの観点からGitHubに入れたときに見られないようにしなければならない．
 そこでAPIなどをメモしたファイル「.env」を別に作成し，ここで参照するようにしている．
 「.gitignore」に「.env」を記載したので，gitHubに「.env」が入れられることはない．
-by小島
+「」
 """
 load_dotenv()
 GUARDIAN_API_KEY = os.environ.get("GUARDIAN_API_KEY")
@@ -18,7 +18,7 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 # 2. Supabaseに接続する
 """
-
+ニュースの取り出しからsupabaseに保存するまでの関数
 """
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) #SupabaseのURLとKeyを使ってSupabaseにアクセスが可能なClientを作成した？by小島
 
@@ -30,26 +30,30 @@ def get_and_save_news():
     
     response = requests.get(url)
     # requestsは要求する，getはデータ取得．よってrequests.get(url)でurl内部のデータ取得を要求している．
-    # その結果をresponseに格納しているby小島
+    # その結果をresponseに格納している
 
     
     if response.status_code == 200:
-        # 通信の結果が200であるかを確認する．（200は通信成功を意味する数字）by小島
+        # 通信の結果が200であるかを確認する．（200は通信成功を意味する数字）
 
         data = response.json()
-        # The GuardianのJSON形式のデータをPythonの辞書型に変換してdataに格納by小島
+        # The GuardianのJSON形式のデータをPythonの辞書型に変換してdataに格納
 
 
         articles = data['response']['results']
-        # 仕組みわからん
+        # 「data」の中のresuponseの中のresultsを取り出してarticlesに入れる．resultsにニュースの情報が入っている．
 
         print(f"{len(articles)}件のニュースが見つかりました。データベースに保存します...")
         # 取得したarticlesの数をカウントする
         
         for article in articles:
             fields = article.get('fields', {})
+            #「fields」は本文を表す．
             body_text = fields.get('bodyText', '')
-            
+            """
+            「articles」にはタイトルとurlが入っている．
+            記事の内容はfieldの中から「bodytext」を取り出さなければならない
+            """
             
             news_data = {
                 "title": article['webTitle'],
@@ -59,6 +63,10 @@ def get_and_save_news():
             
             try:
                 supabase.table("news").insert(news_data).execute()
+                """
+                supabaseに対するアクション
+                「news」テーブルに対して，ニュースのデータを格納している「news_data」を挿入し，executeで実行している．
+                """
 
                 
                 print(f"保存成功: {news_data['title']}")
@@ -71,5 +79,6 @@ def get_and_save_news():
         print(f"原因コード: {response.status_code}")
         print(f"詳細メッセージ: {response.text}")
 
+# 「get_and_save_news()」の実行
 if __name__ == "__main__":
     get_and_save_news()
