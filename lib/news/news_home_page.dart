@@ -6,244 +6,236 @@ class NewsHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: const Color(0xFFF8FAFD),
+
+      // 下部ナビゲーション
+      bottomNavigationBar: const _BottomNavigation(),
 
       body: SafeArea(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-              // 上部
-              Container(
-                width: double.infinity,
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 18,
-                ),
-                child: const Text(
-                  'DAILY NEWS',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
+              // =========================
+              // ヘッダー
+              // =========================
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'ニュースBeReal',
+                      style: TextStyle(
+                        fontSize: 27,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -1,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
                   ),
-                ),
+
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.person_add_alt_1_outlined,
+                      size: 27,
+                    ),
+                  ),
+
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      size: 30,
+                    ),
+                  ),
+                ],
               ),
 
-              const Divider(height: 1),
+              const SizedBox(height: 25),
 
-              Padding(
-                padding: const EdgeInsets.all(22),
+              // =========================
+              // 今日のニュース
+              // =========================
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: const Color(0xFF9AAEC6),
+                    width: 1.5,
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    // カテゴリ
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '災害・気象',
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // ニュースタイトル
-                    const Text(
-                      '【千葉豪雨】死者10人に\n夜にかけ雨のおそれ\n土砂災害に注意を',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        height: 1.35,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // 出典・日付
-                    Row(
+                    // 国・時刻
+                    const Row(
                       children: [
-                        const Icon(
-                          Icons.article_outlined,
-                          size: 18,
-                          color: Colors.grey,
+                        Text(
+                          '🇫🇷',
+                          style: TextStyle(fontSize: 24),
                         ),
 
-                        const SizedBox(width: 6),
+                        SizedBox(width: 8),
 
-                        const Text(
-                          'NHK NEWS',
+                        Text(
+                          'フランス',
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
 
-                        const SizedBox(width: 12),
+                        SizedBox(width: 8),
 
                         Text(
-                          '2026年8月16日',
+                          '配信時刻 14:05',
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                            color: Color(0xFF667085),
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 30),
-
-                    // メイン画像の代わり
-                    Container(
-                      width: double.infinity,
-                      height: 210,
-                      decoration: BoxDecoration(
-                        color: Colors.blueGrey.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.water,
-                            size: 65,
-                            color: Colors.blueGrey.shade400,
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          Text(
-                            '千葉県で記録的な豪雨',
-                            style: TextStyle(
-                              fontSize: 17,
-                              color: Colors.blueGrey.shade700,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // 概要見出し
-                    const Text(
-                      'ニュース概要',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // 概要
-                    const Text(
-                      '千葉県では記録的な豪雨によって各地で大きな被害が発生しています。'
-                      '県内では新たに死亡が確認された人を含め、豪雨による死者は10人となりました。'
-                      'また、現在も行方が分かっていない人がおり、捜索が続けられています。',
-                      style: TextStyle(
-                        fontSize: 17,
-                        height: 1.8,
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    const Text(
-                      '住宅への浸水などの被害も広い範囲で確認されています。'
-                      '雨が弱まった地域でも地盤が緩んでいる可能性があるため、'
-                      '引き続き土砂災害などへの警戒が必要です。',
-                      style: TextStyle(
-                        fontSize: 17,
-                        height: 1.8,
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // ポイント
-                    const Text(
-                      'このニュースのポイント',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
                     const SizedBox(height: 16),
 
-                    _pointCard(
-                      icon: Icons.people_alt_outlined,
-                      title: '人的被害',
-                      text: '千葉県内で死者10人。行方不明者の捜索も続いています。',
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    _pointCard(
-                      icon: Icons.home_outlined,
-                      title: '住宅被害',
-                      text: '床上・床下浸水など、多数の住宅で被害が確認されています。',
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    _pointCard(
-                      icon: Icons.warning_amber_rounded,
-                      title: '今後も注意',
-                      text: '雨や土砂災害への警戒を続ける必要があります。',
-                    ),
-
-                    const SizedBox(height: 35),
-
-                    const Divider(),
-
-                    const SizedBox(height: 20),
-
-                    const Text(
-                      '出典',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
+                    // ニュース画像（今はダミー）
+                    Container(
+                      height: 180,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE6ECF4),
+                        borderRadius: BorderRadius.circular(17),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          size: 55,
+                          color: Color(0xFF52657A),
+                        ),
                       ),
                     ),
 
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 18),
 
-                    const Text(
-                      'NHK NEWS',
+                    // ニュースタイトル
+                    const Center(
+                      child: Text(
+                        'フランス政府が新たな政策を発表',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          height: 1.4,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // タップして読む
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'ニュースURLとの連携は次の段階で実装します',
+                              ),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF111827),
+                          side: const BorderSide(
+                            color: Color(0xFFC5D1DF),
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'タップして読む',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // =========================
+              // フレンドのフィード
+              // =========================
+              const Text(
+                'フレンドのフィード',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF111827),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              const _FriendFeedCard(),
+
+              const SizedBox(height: 18),
+
+              // =========================
+              // ロックされたフィード
+              // =========================
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 42,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF465A72),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Column(
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 42,
+                      color: Colors.black,
+                    ),
+
+                    SizedBox(height: 22),
+
+                    Text(
+                      '🔒 あなたが今日のニュースを読むと、\n'
+                      '友達のニュースとリアクションが見られます',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        height: 1.6,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
                       ),
                     ),
-
-                    const SizedBox(height: 8),
-
-                    const Text(
-                      '※この記事はプロトタイプ表示用に要約しています。',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -253,61 +245,246 @@ class NewsHomePage extends StatelessWidget {
       ),
     );
   }
+}
 
-  static Widget _pointCard({
-    required IconData icon,
-    required String title,
-    required String text,
-  }) {
+// ============================================================
+// フレンドの投稿
+// ============================================================
+
+class _FriendFeedCard extends StatelessWidget {
+  const _FriendFeedCard();
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: const Color(0xFFC5D1DF),
+          width: 1.3,
         ),
       ),
-
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 27,
-            color: Colors.blueGrey,
+          // ユーザー情報
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 26,
+                backgroundColor: Color(0xFFE5EDF7),
+                child: Icon(
+                  Icons.person,
+                  color: Color(0xFF8799AF),
+                ),
+              ),
+
+              const SizedBox(width: 13),
+
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'User 1',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+
+                    Text(
+                      '2分前',
+                      style: TextStyle(
+                        color: Color(0xFF98A2B3),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Text(
+                '🌐',
+                style: TextStyle(fontSize: 25),
+              ),
+
+              const SizedBox(width: 5),
+
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '国名',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF98A2B3),
+                    ),
+                  ),
+                  Text(
+                    'フランス',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
 
-          const SizedBox(width: 14),
+          const SizedBox(height: 18),
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ],
+          // 投稿内容
+          const Text(
+            'フランスで新たな気候変動対策が発表。',
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
             ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // いいね・コメント
+          const Row(
+            children: [
+              Icon(
+                Icons.thumb_up_alt_outlined,
+                size: 22,
+                color: Color(0xFF52657A),
+              ),
+
+              SizedBox(width: 6),
+
+              Text(
+                'いいね (2)',
+                style: TextStyle(
+                  color: Color(0xFF52657A),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              SizedBox(width: 22),
+
+              Icon(
+                Icons.chat_bubble_outline,
+                size: 21,
+                color: Color(0xFF52657A),
+              ),
+
+              SizedBox(width: 6),
+
+              Text(
+                'コメント (5)',
+                style: TextStyle(
+                  color: Color(0xFF52657A),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+}
+
+// ============================================================
+// 下部ナビゲーション
+// ============================================================
+
+class _BottomNavigation extends StatelessWidget {
+  const _BottomNavigation();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: Color(0xFFD7DFE9),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: const [
+              _NavItem(
+                icon: Icons.home_outlined,
+                label: 'ホーム',
+                active: true,
+              ),
+
+              _NavItem(
+                icon: Icons.location_on_outlined,
+                label: '地図',
+              ),
+
+              _NavItem(
+                icon: Icons.person_outline,
+                label: 'マイページ',
+              ),
+
+              _NavItem(
+                icon: Icons.settings_outlined,
+                label: '設定',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active
+        ? const Color(0xFF111827)
+        : const Color(0xFF94A3B8);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          color: color,
+          size: 27,
+        ),
+
+        const SizedBox(height: 4),
+
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: active
+                ? FontWeight.w700
+                : FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
