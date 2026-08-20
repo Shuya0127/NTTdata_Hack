@@ -3,82 +3,105 @@ import requests
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-# 1. .envファイルからAPIを読み込む
-"""
-ここは「The Guardian Open PlatformのAPI」と「SupabaseのAPI」，「Supabaseのurl」を取得する箇所．
-APIはセキュリティの観点からGitHubに入れたときに見られないようにしなければならない．
-そこでAPIなどをメモしたファイル「.env」を別に作成し，ここで参照するようにしている．
-「.gitignore」に「.env」を記載したので，gitHubに「.env」が入れられることはない．
-「」
-"""
+# 1. .envファイルから秘密情報を読み込む
 load_dotenv()
 GUARDIAN_API_KEY = os.environ.get("GUARDIAN_API_KEY")
+NEWSAPI_KEY = os.environ.get("NEWSAPI_KEY")
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 # 2. Supabaseに接続する
-"""
-ニュースの取り出しからsupabaseに保存するまでの関数
-"""
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) #SupabaseのURLとKeyを使ってSupabaseにアクセスが可能なClientを作成した？by小島
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def get_and_save_news():
-    print("The Guardianからニュースを取得中...")
+# --------------------------------------------------
+# The Guardianから取得する関数
+# --------------------------------------------------
+def get_guardian_news():
+    print("🌍 The Guardianからニュースを取得中...")
     
-    url = f"https://content.guardianapis.com/search?api-key={GUARDIAN_API_KEY}&show-fields=bodyText"
-    # The GuardianのURL．&show-fields=bodyTextによりニュース本文を取得することができる．by小島
-    
+    # 【変更点】show-fieldsに「thumbnail」を追加しました
+    url = f"https://content.guardianapis.com/search?api-key={GUARDIAN_API_KEY}&show-fields=bodyText,thumbnail"
     response = requests.get(url)
-    # requestsは要求する，getはデータ取得．よってrequests.get(url)でurl内部のデータ取得を要求している．
-    # その結果をresponseに格納している
-
     
     if response.status_code == 200:
-        # 通信の結果が200であるかを確認する．（200は通信成功を意味する数字）
-
         data = response.json()
-        # The GuardianのJSON形式のデータをPythonの辞書型に変換してdataに格納
-
-
         articles = data['response']['results']
-        # 「data」の中のresuponseの中のresultsを取り出してarticlesに入れる．resultsにニュースの情報が入っている．
-
-        print(f"{len(articles)}件のニュースが見つかりました。データベースに保存します...")
-        # 取得したarticlesの数をカウントする
         
         for article in articles:
             fields = article.get('fields', {})
-            #「fields」は本文を表す．
-            body_text = fields.get('bodyText', '')
-            """
-            「articles」にはタイトルとurlが入っている．
-            記事の内容はfieldの中から「bodytext」を取り出さなければならない
-            """
             
             news_data = {
-                "title": article['webTitle'],
-                "url": article['webUrl'],
-                "content": body_text
+                "title": article.get('webTitle', ''),
+                "url": article.get('webUrl', ''),
+                "content": fields.get('bodyText', ''),
+                "source": "The Guardian",
+                "published_at": article.get('webPublicationDate'),
+                "country": "GB",
+                "thumbnail_url": fields.get('thumbnail', '')  # 【追加】サムネイル画像URL
             }
             
             try:
                 supabase.table("news").insert(news_data).execute()
-                """
-                supabaseに対するアクション
-                「news」テーブルに対して，ニュースのデータを格納している「news_data」を挿入し，executeで実行している．
-                """
-
-                
-                print(f"保存成功: {news_data['title']}")
+                print(f"✅ Guardian保存成功: {news_data['title']}")
             except Exception as e:
-                print(f"エラー: {e}")
-                
-        print("すべての処理が完了しました！")
+                print(f"❌ エラー: {e}")
     else:
-        print("ニュースの取得に失敗しました。")
-        print(f"原因コード: {response.status_code}")
-        print(f"詳細メッセージ: {response.text}")
+        print("❌ Guardianの取得に失敗しました。")
 
-# 「get_and_save_news()」の実行
+# --------------------------------------------------
+# 【修正版】NewsAPIから取得する関数（確実に取得する）
+# --------------------------------------------------
+def get_newsapi_news(keyword="japan"):
+    print(f"🌍 NewsAPIからキーワード [{keyword}] のニュースを取得中...")
+    
+    # 【変更点】top-headlinesではなく、everythingに変更してキーワードで検索
+    url = f"https://newsapi.org/v2/everything?q={keyword}&sortBy=publishedAt&apiKey={NEWSAPI_KEY}"
+    
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        data = response.json()
+        articles = data.get('articles', [])
+        
+        # 【追加】何件見つかったか分かりやすくprintで表示する
+        print(f"👀 NewsAPIで {len(articles)} 件のニュースが見つかりました！")
+        
+        # 取得件数が多いと時間がかかるので、最初の10件だけ保存するように制限（お好みで変更してください）
+        for article in articles[:10]:
+            content_text = article.get('content') or article.get('description') or ''
+            
+            news_data = {
+                "title": article.get('title', ''),
+                "url": article.get('url', ''),
+                "content": content_text,
+                "source": article.get('source', {}).get('name', 'NewsAPI'),
+                "published_at": article.get('publishedAt'),
+                "country": "ANY",  # everythingエンドポイントには国指定がないため、ANYとしておきます
+                "thumbnail_url": article.get('urlToImage', '')
+            }
+            
+            try:
+                supabase.table("news").insert(news_data).execute()
+                print(f"✅ NewsAPI保存成功: {news_data['title']}")
+            except Exception as e:
+                print(f"❌ エラー: {e}")
+    else:
+        print("❌ NewsAPIの取得に失敗しました。")
+        print(f"ステータスコード: {response.status_code}")
+        print(f"詳細: {response.text}") # エラーの詳細も表示するようにしました
+# --------------------------------------------------
+# 実行部分
+# --------------------------------------------------
 if __name__ == "__main__":
-    get_and_save_news()
+    # Guardianのニュース取得
+    get_guardian_news()
+    
+    print("-" * 40)
+    
+    # 【修正】引数を keyword に変更します
+    get_newsapi_news(keyword="japan")
+    
+    # ちなみに、keyword="technology" や keyword="anime" などに変えれば、
+    # 好きなジャンルのニュースを取ってくることもできます！
+    
+    print("🎉 すべての処理が完了しました！")
