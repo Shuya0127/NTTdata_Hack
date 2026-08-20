@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,29 +18,44 @@ class _NewsHomePageState extends State<NewsHomePage> {
   void initState() {
     super.initState();
 
-    // 画面を開いたときにSupabaseからニュースを1件取得
-    _newsFuture = _getOneNews();
+    // 画面を開いたときにランダムなニュースを1件取得
+    _newsFuture = _getRandomNews();
   }
 
   // ============================================================
-  // Supabaseからニュースを1件取得
+  // Supabaseからニュースを複数取得し、
+  // その中からランダムに1件選ぶ
   // ============================================================
 
-  Future<Map<String, dynamic>?> _getOneNews() async {
+  Future<Map<String, dynamic>?> _getRandomNews() async {
     try {
+      // Supabaseからニュースを最大100件取得
       final data = await Supabase.instance.client
           .from('news')
-          .select('title, url, content')
-          .limit(1);
+          .select(
+            'title, url, content, thumbnail_url, source, published_at, country',
+          )
+          .limit(100);
 
-      debugPrint('Supabaseから取得したデータ: $data');
+      debugPrint('Supabaseから取得したニュース数: ${data.length}');
 
+      // ニュースが0件の場合
       if (data.isEmpty) {
         debugPrint('newsテーブルにデータがありません');
         return null;
       }
 
-      return data.first;
+      // 0 ～ ニュース件数-1 の中からランダムな番号を作る
+      final random = Random();
+      final randomIndex = random.nextInt(data.length);
+
+      // ランダムに選ばれたニュース
+      final randomNews =
+          Map<String, dynamic>.from(data[randomIndex]);
+
+      debugPrint('ランダムに選ばれたニュース: $randomNews');
+
+      return randomNews;
     } catch (e) {
       debugPrint('Supabase取得エラー: $e');
       rethrow;
@@ -51,7 +68,8 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
   void _reloadNews() {
     setState(() {
-      _newsFuture = _getOneNews();
+      // 再読み込みするたびにランダムで選び直す
+      _newsFuture = _getRandomNews();
     });
   }
 
@@ -90,11 +108,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
     try {
       final bool opened = await launchUrl(
         newsUri,
-
-        // iPhone/Androidでは外部ブラウザ
         mode: LaunchMode.externalApplication,
-
-        // Flutter Webでは新しいタブ
         webOnlyWindowName: '_blank',
       );
 
@@ -118,6 +132,112 @@ class _NewsHomePageState extends State<NewsHomePage> {
     }
   }
 
+  // ============================================================
+  // 国コードから表示用文字を作る
+  // ============================================================
+
+  String _countryLabel(String country) {
+    switch (country.toUpperCase()) {
+      case 'GB':
+        return '🇬🇧 UK';
+
+      case 'JP':
+        return '🇯🇵 JAPAN';
+
+      case 'US':
+        return '🇺🇸 USA';
+
+      case 'AU':
+        return '🇦🇺 AUSTRALIA';
+
+      case 'ANY':
+        return '🌍 WORLD';
+
+      default:
+        return '🌍 WORLD';
+    }
+  }
+
+  // ============================================================
+  // ニュース画像
+  // ============================================================
+
+  Widget _buildNewsImage(String thumbnailUrl) {
+    // thumbnail_urlが空の場合
+    if (thumbnailUrl.trim().isEmpty) {
+      return _buildImagePlaceholder();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(17),
+      child: SizedBox(
+        height: 180,
+        width: double.infinity,
+        child: Image.network(
+          thumbnailUrl,
+          width: double.infinity,
+          height: 180,
+          fit: BoxFit.cover,
+
+          // 画像読み込み中
+          loadingBuilder: (
+            BuildContext context,
+            Widget child,
+            ImageChunkEvent? loadingProgress,
+          ) {
+            if (loadingProgress == null) {
+              return child;
+            }
+
+            return Container(
+              color: const Color(0xFFE6ECF4),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          },
+
+          // 画像取得失敗時
+          errorBuilder: (
+            BuildContext context,
+            Object error,
+            StackTrace? stackTrace,
+          ) {
+            debugPrint('画像読み込みエラー: $error');
+
+            return _buildImagePlaceholder();
+          },
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // 画像がない場合のプレースホルダー
+  // ============================================================
+
+  Widget _buildImagePlaceholder() {
+    return Container(
+      height: 180,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE6ECF4),
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.image_outlined,
+          size: 55,
+          color: Color(0xFF52657A),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // メイン画面
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,7 +248,12 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+          padding: const EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            30,
+          ),
 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,11 +395,11 @@ class _NewsHomePageState extends State<NewsHomePage> {
                     );
                   }
 
-                  // ---------------------------------------------
-                  // データなし
-                  // ---------------------------------------------
-
                   final news = snapshot.data;
+
+                  // ---------------------------------------------
+                  // ニュースが存在しない
+                  // ---------------------------------------------
 
                   if (news == null) {
                     return Container(
@@ -321,7 +446,8 @@ class _NewsHomePageState extends State<NewsHomePage> {
                   // ---------------------------------------------
 
                   final String title =
-                      news['title']?.toString() ?? 'タイトルなし';
+                      news['title']?.toString() ??
+                          'タイトルなし';
 
                   final String url =
                       news['url']?.toString() ?? '';
@@ -329,8 +455,34 @@ class _NewsHomePageState extends State<NewsHomePage> {
                   final String content =
                       news['content']?.toString() ?? '';
 
-                  debugPrint('表示するタイトル: $title');
-                  debugPrint('URL: $url');
+                  final String thumbnailUrl =
+                      news['thumbnail_url']?.toString() ?? '';
+
+                  final String source =
+                      news['source']?.toString() ?? '';
+
+                  final String country =
+                      news['country']?.toString() ?? 'ANY';
+
+                  debugPrint(
+                    '表示するタイトル: $title',
+                  );
+
+                  debugPrint(
+                    'ニュースURL: $url',
+                  );
+
+                  debugPrint(
+                    '画像URL: $thumbnailUrl',
+                  );
+
+                  debugPrint(
+                    'ニュース提供元: $source',
+                  );
+
+                  // ---------------------------------------------
+                  // ニュースカード
+                  // ---------------------------------------------
 
                   return Container(
                     width: double.infinity,
@@ -343,39 +495,37 @@ class _NewsHomePageState extends State<NewsHomePage> {
                         width: 1.5,
                       ),
                     ),
+
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
                         // ---------------------------------------
-                        // 国・日付
+                        // 国・ニュース提供元
                         // ---------------------------------------
 
-                        const Row(
+                        Row(
                           children: [
                             Text(
-                              '🌍',
-                              style: TextStyle(
-                                fontSize: 24,
-                              ),
-                            ),
-
-                            SizedBox(width: 8),
-
-                            Text(
-                              'WORLD',
-                              style: TextStyle(
+                              _countryLabel(country),
+                              style: const TextStyle(
                                 fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
 
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
 
-                            Text(
-                              '今日のニュース',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF667085),
+                            Expanded(
+                              child: Text(
+                                source.isNotEmpty
+                                    ? source
+                                    : '今日のニュース',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF667085),
+                                ),
                               ),
                             ),
                           ],
@@ -385,29 +535,16 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
                         // ---------------------------------------
                         // ニュース画像
-                        // 現在はダミー
                         // ---------------------------------------
 
-                        Container(
-                          height: 180,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE6ECF4),
-                            borderRadius: BorderRadius.circular(17),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.image_outlined,
-                              size: 55,
-                              color: Color(0xFF52657A),
-                            ),
-                          ),
+                        _buildNewsImage(
+                          thumbnailUrl,
                         ),
 
                         const SizedBox(height: 20),
 
                         // ---------------------------------------
-                        // Supabaseから取得したタイトル
+                        // ニュースタイトル
                         // ---------------------------------------
 
                         Center(
@@ -424,7 +561,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
                         ),
 
                         // ---------------------------------------
-                        // 本文の一部
+                        // ニュース本文
                         // ---------------------------------------
 
                         if (content.isNotEmpty) ...[
@@ -445,7 +582,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
                         const SizedBox(height: 20),
 
                         // ---------------------------------------
-                        // タップしてニュースサイトへ
+                        // ニュースサイトを開く
                         // ---------------------------------------
 
                         SizedBox(
@@ -455,23 +592,31 @@ class _NewsHomePageState extends State<NewsHomePage> {
                             onPressed: () {
                               _openNewsUrl(url);
                             },
-                            style: OutlinedButton.styleFrom(
+                            style:
+                                OutlinedButton.styleFrom(
                               foregroundColor:
-                                  const Color(0xFF111827),
+                                  const Color(
+                                    0xFF111827,
+                                  ),
                               side: const BorderSide(
-                                color: Color(0xFFC5D1DF),
+                                color:
+                                    Color(0xFFC5D1DF),
                                 width: 1.5,
                               ),
-                              shape: RoundedRectangleBorder(
+                              shape:
+                                  RoundedRectangleBorder(
                                 borderRadius:
-                                    BorderRadius.circular(12),
+                                    BorderRadius.circular(
+                                  12,
+                                ),
                               ),
                             ),
                             child: const Text(
                               'タップして読む',
                               style: TextStyle(
                                 fontSize: 17,
-                                fontWeight: FontWeight.w700,
+                                fontWeight:
+                                    FontWeight.w700,
                               ),
                             ),
                           ),
@@ -596,7 +741,8 @@ class _FriendFeedCard extends StatelessWidget {
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
                   children: [
                     Text(
                       'User 1',
@@ -707,7 +853,8 @@ class _BottomNavigation extends StatelessWidget {
             vertical: 9,
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment:
+                MainAxisAlignment.spaceAround,
             children: [
               _NavItem(
                 icon: Icons.home_outlined,
@@ -736,6 +883,10 @@ class _BottomNavigation extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// 下部ナビゲーションの1項目
+// ============================================================
 
 class _NavItem extends StatelessWidget {
   final IconData icon;
