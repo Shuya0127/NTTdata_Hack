@@ -168,7 +168,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       trailing: CupertinoSwitch(
         value: value,
-        activeColor: const Color(0xFF475569),
+        activeTrackColor: const Color(0xFF475569),
         onChanged: onChanged,
       ),
     );
