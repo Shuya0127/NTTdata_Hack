@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-=======
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../news/news_home_page.dart';
->>>>>>> 045f6b4fd4a9a3c1123210e205627bac04dbda73
 
 class AccountCreationPage extends StatefulWidget {
   const AccountCreationPage({super.key});
@@ -56,11 +53,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
     }
   }
 
-<<<<<<< HEAD
-  void _createAccount() {
-=======
 Future<void> _createAccount() async {
->>>>>>> 045f6b4fd4a9a3c1123210e205627bac04dbda73
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -70,14 +63,6 @@ Future<void> _createAccount() async {
       return;
     }
 
-<<<<<<< HEAD
-    // 今はUI確認用
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('アカウント登録処理は次にSupabaseと接続します'),
-      ),
-    );
-=======
     final supabase = Supabase.instance.client;
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -130,7 +115,6 @@ Future<void> _createAccount() async {
         );
       }
     }
->>>>>>> 045f6b4fd4a9a3c1123210e205627bac04dbda73
   }
 
   @override
