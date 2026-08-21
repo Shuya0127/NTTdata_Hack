@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
+=======
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../news/news_home_page.dart';
+>>>>>>> 045f6b4fd4a9a3c1123210e205627bac04dbda73
 
 class AccountCreationPage extends StatefulWidget {
   const AccountCreationPage({super.key});
@@ -51,7 +56,11 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
     }
   }
 
+<<<<<<< HEAD
   void _createAccount() {
+=======
+Future<void> _createAccount() async {
+>>>>>>> 045f6b4fd4a9a3c1123210e205627bac04dbda73
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -61,12 +70,67 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
       return;
     }
 
+<<<<<<< HEAD
     // 今はUI確認用
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('アカウント登録処理は次にSupabaseと接続します'),
       ),
     );
+=======
+    final supabase = Supabase.instance.client;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final username = _usernameController.text.trim();
+    final birthday = _birthdayController.text.trim();
+
+    try {
+      // 1. Supabase Auth にユーザーを登録
+      final AuthResponse res = await supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      final User? user = res.user;
+
+      if (user != null) {
+        // 2. profiles テーブルにプロフィール情報を保存
+        await supabase.from('profiles').insert({
+          'id': user.id,
+          'username': username, // ※Supabase側で修正した列名と一致しているか確認
+          'birth_date': birthday.replaceAll(' / ', '-'),
+        });
+
+        // 【変更点1】成功したら通知ではなく、ニュースのホーム画面へ遷移する
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NewsHomePage(),
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      // 【変更点2】エラー時は長く表示し、手動で消せる「閉じる」ボタンを追加
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラー: $error'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 10), // 10秒間表示し続ける
+            action: SnackBarAction(
+              label: '閉じる',
+              textColor: Colors.white,
+              onPressed: () {
+                // ここを押すとSnackBarが即座に消えます
+              },
+            ),
+          ),
+        );
+      }
+    }
+>>>>>>> 045f6b4fd4a9a3c1123210e205627bac04dbda73
   }
 
   @override
