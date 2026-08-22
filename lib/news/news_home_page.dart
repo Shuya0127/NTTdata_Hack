@@ -11,6 +11,7 @@ import '../add_friend.dart';
 import '../pinned_news_store.dart';
 import '../profile_page.dart';
 import '../settings_page.dart';
+import '../world_map_page.dart';
 
 class NewsHomePage extends StatefulWidget {
   const NewsHomePage({super.key});
@@ -1087,7 +1088,16 @@ class _BottomNavigation extends StatelessWidget {
             children: [
               _NavItem(icon: Icons.home_outlined, label: 'ホーム', active: true),
 
-              _NavItem(icon: Icons.location_on_outlined, label: '地図'),
+              _NavItem(
+                icon: Icons.location_on_outlined,
+                label: '地図',
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WorldMapPage()),
+                  );
+                },
+              ),
 
               _NavItem(
                 icon: Icons.person_outline,

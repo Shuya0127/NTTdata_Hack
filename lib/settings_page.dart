@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'news/news_home_page.dart';
 import 'profile_edit_page.dart';
 import 'profile_page.dart';
+import 'world_map_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -97,6 +98,14 @@ class _SettingsPageState extends State<SettingsPage> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const NewsHomePage()),
+            );
+            return;
+          }
+
+          if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const WorldMapPage()),
             );
             return;
           }

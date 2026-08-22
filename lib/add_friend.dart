@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'settings_page.dart';
+import 'world_map_page.dart';
 
 class AddFriendPage extends StatefulWidget {
   const AddFriendPage({super.key});
@@ -431,6 +432,13 @@ class _AddFriendPageState extends State<AddFriendPage> {
         unselectedItemColor: subTextColor,
         currentIndex: _selectedIndex,
         onTap: (index) {
+          if (index == 1) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const WorldMapPage()),
+            );
+            return;
+          }
+
           if (index == 3) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const SettingsPage()),

@@ -5,6 +5,7 @@ import 'add_friend.dart';
 import 'news/news_home_page.dart';
 import 'pinned_news_store.dart';
 import 'settings_page.dart';
+import 'world_map_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -102,9 +103,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // 地図
     if (index == 1) {
-      setState(() {
-        _selectedIndex = index;
-      });
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const WorldMapPage()),
+      );
 
       return;
     }
