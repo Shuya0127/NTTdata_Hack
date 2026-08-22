@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-=======
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'settings_page.dart';
 import 'world_map_page.dart';
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
 
 class AddFriendPage extends StatefulWidget {
   const AddFriendPage({super.key});
@@ -14,11 +11,6 @@ class AddFriendPage extends StatefulWidget {
   State<AddFriendPage> createState() => _AddFriendPageState();
 }
 
-<<<<<<< HEAD
-class _AddFriendPageState extends State<AddFriendPage> {
-  final TextEditingController _searchController = TextEditingController();
-  int _selectedIndex = 2; // マイページまたは関連タブ
-=======
 class FriendRequest {
   const FriendRequest({
     required this.id,
@@ -208,7 +200,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
   String? _searchError;
   bool _hasSearched = false;
   bool _isSearching = false;
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
 
   @override
   void dispose() {
@@ -216,14 +207,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
     super.dispose();
   }
 
-<<<<<<< HEAD
-  @override
-  Widget build(BuildContext context) {
-    const backgroundColor = Color(0xFFE4EBF5); // 背景色
-    const textColor = Color(0xFF1E293B);       // テキスト色
-    const subTextColor = Color(0xFF94A3B8);    // 補足テキスト色
-    const primaryColor = Color(0xFF475569);    // ボタンカラー
-=======
   Future<void> _searchUser() async {
     final userId = _searchController.text.trim();
 
@@ -274,7 +257,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
     const textColor = Color(0xFF1E293B);
     const subTextColor = Color(0xFF94A3B8);
     const primaryColor = Color(0xFF475569);
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -283,15 +265,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
           children: [
             Expanded(
               child: ListView(
-<<<<<<< HEAD
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                children: [
-                  // ヘッダー（戻るボタン ＋ タイトル）
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: textColor),
-=======
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 12,
@@ -305,7 +278,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
                           size: 20,
                           color: textColor,
                         ),
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
                         onPressed: () => Navigator.of(context).maybePop(),
                       ),
                       const Expanded(
@@ -320,14 +292,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
                           ),
                         ),
                       ),
-<<<<<<< HEAD
-                      const SizedBox(width: 48), // 左右中央揃え用の余白
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // タイトル下のインジケーターバー
-=======
                       IconButton(
                         icon: const Icon(
                           Icons.mark_email_unread_outlined,
@@ -345,7 +309,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
                     ],
                   ),
                   const SizedBox(height: 8),
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
                   Center(
                     child: Container(
                       width: 120,
@@ -357,11 +320,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-<<<<<<< HEAD
-
-                  // セクション: ユーザーIDで検索
-=======
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
                   const Text(
                     'ユーザーIDで検索',
                     style: TextStyle(
@@ -371,11 +329,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-<<<<<<< HEAD
-
-                  // 検索ボックス
-=======
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -383,11 +336,8 @@ class _AddFriendPageState extends State<AddFriendPage> {
                     ),
                     child: TextField(
                       controller: _searchController,
-<<<<<<< HEAD
-=======
                       textInputAction: TextInputAction.search,
                       onSubmitted: (_) => _searchUser(),
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
                       decoration: const InputDecoration(
                         prefixIcon: Icon(Icons.search, color: subTextColor),
                         hintText: 'ユーザーIDを入力',
@@ -398,11 +348,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-<<<<<<< HEAD
-
-                  // セクション: 検索結果
-=======
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
                   const Text(
                     '検索結果',
                     style: TextStyle(
@@ -412,85 +357,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
                     ),
                   ),
                   const SizedBox(height: 10),
-<<<<<<< HEAD
-
-                  // 検索結果カード
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        // プロフィール画像
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(25),
-                          child: Image.network(
-                            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        // ユーザーネーム & ID
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                '田中 太郎',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                '@tanaka_taro',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: subTextColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // 追加するボタン
-                        ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            '追加する',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 100),
-
-                  // 案内テキスト
-                  const Center(
-                    child: Text(
-                      'IDを入力してフレンドを検索してください',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: subTextColor,
-                      ),
-                    ),
-                  ),
-=======
                   if (_isSearching)
                     const Center(child: CircularProgressIndicator())
                   else if (_searchResult != null)
@@ -553,18 +419,12 @@ class _AddFriendPageState extends State<AddFriendPage> {
                       ),
                     ),
                   const SizedBox(height: 100),
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
                 ],
               ),
             ),
           ],
         ),
       ),
-<<<<<<< HEAD
-
-      // ボトムナビゲーションバー
-=======
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: backgroundColor,
@@ -572,8 +432,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
         unselectedItemColor: subTextColor,
         currentIndex: _selectedIndex,
         onTap: (index) {
-<<<<<<< HEAD
-=======
           if (index == 1) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const WorldMapPage()),
@@ -588,18 +446,11 @@ class _AddFriendPageState extends State<AddFriendPage> {
             return;
           }
 
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
           setState(() {
             _selectedIndex = index;
           });
         },
         items: const [
-<<<<<<< HEAD
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'ホーム'),
-          BottomNavigationBarItem(icon: Icon(Icons.location_on_outlined), label: '地図'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'マイページ'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '設定'),
-=======
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             label: 'ホーム',
@@ -616,13 +467,8 @@ class _AddFriendPageState extends State<AddFriendPage> {
             icon: Icon(Icons.settings_outlined),
             label: '設定',
           ),
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
         ],
       ),
     );
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 47737079e23c3f66d71291ef069004e851f9d424
