@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../news/news_home_page.dart';
+import 'login_page.dart';
 
 class AccountCreationPage extends StatefulWidget {
   const AccountCreationPage({super.key});
@@ -9,10 +12,10 @@ class AccountCreationPage extends StatefulWidget {
 }
 
 class _AccountCreationPageState extends State<AccountCreationPage> {
-  final TextEditingController _usernameController =
+  final TextEditingController _userIdController =
       TextEditingController();
 
-  final TextEditingController _emailController =
+  final TextEditingController _usernameController =
       TextEditingController();
 
   final TextEditingController _passwordController =
@@ -26,8 +29,8 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
 
   @override
   void dispose() {
+    _userIdController.dispose();
     _usernameController.dispose();
-    _emailController.dispose();
     _passwordController.dispose();
     _birthdayController.dispose();
     super.dispose();
@@ -51,7 +54,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
     }
   }
 
-  void _createAccount() {
+  Future<void> _createAccount() async {
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -61,11 +64,74 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
       return;
     }
 
-    // 今はUI確認用
+    final supabase = Supabase.instance.client;
+    final userId = _userIdController.text.trim().toLowerCase();
+    final password = _passwordController.text.trim();
+    final username = _usernameController.text.trim();
+    final birthday = _birthdayController.text.trim();
+
+    if (!RegExp(r'^[a-z0-9_]{3,30}$').hasMatch(userId)) {
+      _showError('ユーザーIDは英小文字・数字・_ を使って3〜30文字で入力してください');
+      return;
+    }
+    if (username.isEmpty || birthday.isEmpty || password.length < 8) {
+      _showError('ユーザー名・生年月日・8文字以上のパスワードを入力してください');
+      return;
+    }
+
+    try {
+      // Supabase Auth はメールまたは電話番号を必要とするため、画面には
+      // 表示しない内部用のメール形式IDをユーザーIDから生成して利用します。
+      final AuthResponse res = await supabase.auth.signUp(
+        email: authEmailFromUserId(userId),
+        password: password,
+      );
+
+      final User? user = res.user;
+
+      if (user != null) {
+        // 2. profiles テーブルにプロフィール情報を保存
+        await supabase.from('profiles').insert({
+          'id': user.id,
+          'user_id': userId,
+          'username': username,
+          'birth_date': birthday.replaceAll(' / ', '-'),
+        });
+
+        // 【変更点1】成功したら通知ではなく、ニュースのホーム画面へ遷移する
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NewsHomePage(),
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      // 【変更点2】エラー時は長く表示し、手動で消せる「閉じる」ボタンを追加
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラー: $error'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 10), // 10秒間表示し続ける
+            action: SnackBarAction(
+              label: '閉じる',
+              textColor: Colors.white,
+              onPressed: () {
+                // ここを押すとSnackBarが即座に消えます
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('アカウント登録処理は次にSupabaseと接続します'),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -183,19 +249,19 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
                 child: Column(
                   children: [
                     _InputField(
-                      label: 'ユーザー名',
-                      hint: '@ username',
-                      controller: _usernameController,
-                      prefixIcon: Icons.alternate_email,
+                      label: 'ユーザーID',
+                      hint: 'news_user',
+                      controller: _userIdController,
+                      prefixIcon: Icons.person_outline,
                     ),
 
                     const SizedBox(height: 14),
 
                     _InputField(
-                      label: 'メールアドレス',
-                      hint: 'example@bereal.news',
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
+                      label: 'ユーザー名',
+                      hint: '@ username',
+                      controller: _usernameController,
+                      prefixIcon: Icons.badge_outlined,
                     ),
 
                     const SizedBox(height: 14),
@@ -323,11 +389,10 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
 
                   GestureDetector(
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'ログイン画面は次に作成します',
-                          ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
                         ),
                       );
                     },
@@ -439,3 +504,6 @@ class _InputField extends StatelessWidget {
     );
   }
 }
+
+/// Supabase Auth 用の内部識別子です。実在するメールアドレスではありません。
+String authEmailFromUserId(String userId) => '$userId@auth.newsapp.local';
