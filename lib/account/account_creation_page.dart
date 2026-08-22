@@ -101,7 +101,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
     return publicUrl;
   }
 
-  Future<void> _createAccount() async {Future<void> _createAccount() async {
+  Future<void> _createAccount() async {
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -191,85 +191,6 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
               label: '閉じる',
               textColor: Colors.white,
               onPressed: () {},
-            ),
-          ),
-        );
-      }
-    }
-  }
-    if (!_agreeTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('利用規約とプライバシーポリシーに同意してください'),
-        ),
-      );
-      return;
-    }
-
-    final supabase = Supabase.instance.client;
-    final userId = _userIdController.text.trim().toLowerCase();
-    final password = _passwordController.text.trim();
-    final username = _usernameController.text.trim();
-    final birthday = _birthdayController.text.trim();
-
-    if (!RegExp(r'^[a-z0-9_]{3,30}$').hasMatch(userId)) {
-      _showError('ユーザーIDは英小文字・数字・_ を使って3〜30文字で入力してください');
-      return;
-    }
-    if (username.isEmpty || birthday.isEmpty || password.length < 8) {
-      _showError('ユーザー名・生年月日・8文字以上のパスワードを入力してください');
-      return;
-    }
-
-    try {
-      // Supabase Auth はメールまたは電話番号を必要とするため、画面には
-      // 表示しない内部用のメール形式IDをユーザーIDから生成して利用します。
-      final AuthResponse res = await supabase.auth.signUp(
-        email: authEmailFromUserId(userId),
-        password: password,
-      );
-
-      final User? user = res.user;
-
-      if (user != null) {
-        final avatarUrl = _avatarBytes == null
-            ? null
-            : await _uploadProfileImage(user.id);
-        final profile = <String, dynamic>{
-          'id': user.id,
-          'user_id': userId,
-          'username': username,
-          'birth_date': birthday.replaceAll(' / ', '-'),
-        };
-        if (avatarUrl != null) profile['avatar_url'] = avatarUrl;
-
-        // 2. profiles テーブルにプロフィール情報を保存
-        await supabase.from('profiles').insert(profile);
-
-        // 【変更点1】成功したら通知ではなく、ニュースのホーム画面へ遷移する
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const NewsHomePage(),
-            ),
-          );
-        }
-      }
-    } catch (error) {
-      // 【変更点2】エラー時は長く表示し、手動で消せる「閉じる」ボタンを追加
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('エラー: $error'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 10), // 10秒間表示し続ける
-            action: SnackBarAction(
-              label: '閉じる',
-              textColor: Colors.white,
-              onPressed: () {
-                // ここを押すとSnackBarが即座に消えます
-              },
             ),
           ),
         );

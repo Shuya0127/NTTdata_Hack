@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'profile_avatar.dart';
+
 class FriendSummary {
   const FriendSummary({
     required this.relationshipId,
     required this.userId,
     required this.username,
+    this.avatarUrl,
   });
 
   final String relationshipId;
   final String userId;
   final String username;
+  final String? avatarUrl;
 }
 
 class FriendRepository {
@@ -48,7 +52,7 @@ class FriendRepository {
 
     final profiles = await client
         .from('profiles')
-        .select('id, username')
+        .select('id, user_id, username, avatar_url')
         .inFilter('id', friendsById.keys.toList());
     final profilesById = {
       for (final profile in List<Map<String, dynamic>>.from(profiles))
@@ -59,9 +63,11 @@ class FriendRepository {
         .map(
           (entry) => FriendSummary(
             relationshipId: entry.value,
-            userId: entry.key,
+            userId:
+                profilesById[entry.key]?['user_id']?.toString() ?? entry.key,
             username:
                 profilesById[entry.key]?['username']?.toString() ?? 'ユーザー名未設定',
+            avatarUrl: profilesById[entry.key]?['avatar_url']?.toString(),
           ),
         )
         .toList();
@@ -200,11 +206,7 @@ class _FriendListPageState extends State<FriendListPage> {
                 ),
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Color(0xFFE2E8F0),
-                      child: Icon(Icons.person, color: Color(0xFF64748B)),
-                    ),
+                    ProfileAvatar(radius: 24, imageUrl: friend.avatarUrl),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
