@@ -2,8 +2,10 @@ name: Get and save daily news
 
 on:
   schedule:
-    # 日本時間の毎朝 8:00（UTCでは前日の23:00）
-    - cron: "*/30 * * * *"
+    # 日本時間 10:00〜19:30 の30分おきに実行 (UTC 1:00〜10:30)
+    - cron: "0,30 1-10 * * *"
+    # 日本時間 20:00 (UTC 11:00) で最後の通知
+    - cron: "0 11 * * *"
   workflow_dispatch: # GitHub画面から手動実行するためのボタン
 
 jobs:
@@ -22,10 +24,14 @@ jobs:
       - name: ライブラリを導入
         run: pip install -r requirements.txt
 
-      - name: ニュースを取得して保存
+      - name: Firebaseの秘密鍵をファイルに書き出す
+        run: echo '${{ secrets.FIREBASE_CREDENTIALS_JSON }}' > firebase-service-account.json
+
+      - name: ニュースを取得して保存し、通知を送信
         run: python get_news.py
         env:
           GUARDIAN_API_KEY: ${{ secrets.GUARDIAN_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          FIREBASE_CREDENTIALS_PATH: firebase-service-account.json

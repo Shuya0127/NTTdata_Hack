@@ -48,3 +48,7 @@ app.*.map.json
 
 .venv/
 venv/
+
+# Firebase Admin SDK秘密鍵(絶対にコミットしない)
+firebase-service-account.json
+*firebase-adminsdk*.json
