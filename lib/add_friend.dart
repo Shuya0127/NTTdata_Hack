@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'settings_page.dart';
 import 'world_map_page.dart';
+import 'profile_avatar.dart';
 
 class AddFriendPage extends StatefulWidget {
   const AddFriendPage({super.key});
@@ -16,11 +17,13 @@ class FriendRequest {
     required this.id,
     required this.userId,
     required this.username,
+    this.avatarUrl,
   });
 
   final String id;
   final String userId;
   final String username;
+  final String? avatarUrl;
 }
 
 class FriendRequestsPage extends StatefulWidget {
@@ -79,7 +82,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
           .toList();
       final profiles = await client
           .from('profiles')
-          .select('id, username')
+          .select('id, user_id, username, avatar_url')
           .inFilter('id', senderIds);
       final profilesById = {
         for (final profile in List<Map<String, dynamic>>.from(profiles))
@@ -96,8 +99,9 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
               final profile = profilesById[senderId];
               return FriendRequest(
                 id: request['id'].toString(),
-                userId: senderId,
+                userId: profile?['user_id']?.toString() ?? senderId,
                 username: profile?['username']?.toString() ?? 'ユーザー名未設定',
+                avatarUrl: profile?['avatar_url']?.toString(),
               );
             }),
           );
@@ -221,10 +225,9 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                     children: [
                       Row(
                         children: [
-                          const CircleAvatar(
+                          ProfileAvatar(
                             radius: 25,
-                            backgroundColor: Color(0xFFE2E8F0),
-                            child: Icon(Icons.person, color: primaryColor),
+                            imageUrl: request.avatarUrl,
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -330,8 +333,8 @@ class _AddFriendPageState extends State<AddFriendPage> {
     try {
       final profile = await Supabase.instance.client
           .from('profiles')
-          .select('id, username')
-          .eq('id', userId)
+          .select('id, user_id, username, avatar_url')
+          .eq('user_id', userId)
           .maybeSingle();
 
       if (!mounted) return;
@@ -511,10 +514,9 @@ class _AddFriendPageState extends State<AddFriendPage> {
                       ),
                       child: Row(
                         children: [
-                          const CircleAvatar(
+                          ProfileAvatar(
                             radius: 25,
-                            backgroundColor: Color(0xFFE2E8F0),
-                            child: Icon(Icons.person, color: primaryColor),
+                            imageUrl: _searchResult!['avatar_url']?.toString(),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -531,7 +533,8 @@ class _AddFriendPageState extends State<AddFriendPage> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  _searchResult!['id'].toString(),
+                                  _searchResult!['user_id']?.toString() ??
+                                      _searchResult!['id'].toString(),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(

@@ -20,6 +20,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String _userId = '読み込み中...';
   String _username = '読み込み中...';
+  String? _avatarUrl;
   bool _isLoadingProfile = true;
   int _friendCount = 0;
 
@@ -70,21 +71,19 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
-      // Supabase AuthのユーザーID
-      final userId = user.id;
-
-      // profilesテーブルからusernameを取得
+      // 表示用のユーザーID・アイコンは profiles テーブルに保存している。
       final profile = await supabase
           .from('profiles')
-          .select('username')
-          .eq('id', userId)
+          .select('username, user_id, avatar_url')
+          .eq('id', user.id)
           .maybeSingle();
 
       if (!mounted) return;
 
       setState(() {
-        _userId = userId;
+        _userId = profile?['user_id']?.toString() ?? user.id;
         _username = profile?['username']?.toString() ?? 'ユーザー名未設定';
+        _avatarUrl = profile?['avatar_url']?.toString();
 
         _isLoadingProfile = false;
       });
@@ -207,22 +206,7 @@ class _ProfilePageState extends State<ProfilePage> {
             // ======================================================
             // プロフィールアイコン
             // ======================================================
-            Center(
-              child: Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                  image: const DecorationImage(
-                    image: NetworkImage(
-                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-                    ),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
+            Center(child: _buildAvatar()),
 
             const SizedBox(height: 10),
 
@@ -486,6 +470,32 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    const size = 96.0;
+    final avatarUrl = _avatarUrl;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: avatarUrl == null || avatarUrl.isEmpty
+          ? const Icon(Icons.person, size: 48, color: Color(0xFF94A3B8))
+          : Image.network(
+              avatarUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.person,
+                size: 48,
+                color: Color(0xFF94A3B8),
+              ),
+            ),
     );
   }
 }
