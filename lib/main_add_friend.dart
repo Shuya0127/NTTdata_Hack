@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'add_friend.dart';
 import 'config/supabase_config.dart';
-import 'profile_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,17 +12,19 @@ Future<void> main() async {
     publishableKey: SupabaseConfig.publishableKey,
   );
 
-  runApp(const ProfileApp());
+  runApp(const AddFriendApp());
 }
 
-class ProfileApp extends StatelessWidget {
-  const ProfileApp({super.key});
+class AddFriendApp extends StatelessWidget {
+  const AddFriendApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: ProfilePage(),
+      title: 'フレンド追加',
+      theme: ThemeData(useMaterial3: true),
+      home: const AddFriendPage(),
     );
   }
 }

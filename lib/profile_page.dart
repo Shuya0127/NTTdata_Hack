@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'add_friend.dart';
+import 'friend_list_page.dart';
 import 'news/news_home_page.dart';
+<<<<<<< HEAD
+=======
+import 'pinned_news_store.dart';
+import 'settings_page.dart';
+import 'world_map_page.dart';
+>>>>>>> origin/feature/news-home
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -15,26 +23,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String _userId = '読み込み中...';
   String _username = '読み込み中...';
+  String? _avatarUrl;
   bool _isLoadingProfile = true;
+<<<<<<< HEAD
+=======
+  int _friendCount = 0;
+>>>>>>> origin/feature/news-home
 
-  // Pins のデータ
-  final List<Map<String, String>> _pins = [
-    {
-      'title': 'AIが変える未来の働き方とは',
-      'date': '2024/12/15',
-      'imageUrl': 'https://picsum.photos/seed/ai/200',
-    },
-    {
-      'title': '東京の隠れた名店グルメ特集',
-      'date': '2024/12/10',
-      'imageUrl': 'https://picsum.photos/seed/gourmet/200',
-    },
-    {
-      'title': '宇宙開発の最新トレンド2025',
-      'date': '2024/12/08',
-      'imageUrl': 'https://picsum.photos/seed/space/200',
-    },
-  ];
+  late Future<List<PinnedNews>> _pinnedNewsFuture;
 
   @override
   void initState() {
@@ -42,6 +38,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // Supabaseからログイン中ユーザーの情報を取得
     _loadProfile();
+    _loadFriendCount();
+    _pinnedNewsFuture = PinnedNewsStore.load();
+  }
+
+  Future<void> _loadFriendCount() async {
+    try {
+      final friends = await FriendRepository.loadFriends();
+      if (!mounted) return;
+      setState(() {
+        _friendCount = friends.length;
+      });
+    } catch (error) {
+      debugPrint('フレンド数取得エラー: $error');
+    }
   }
 
   // ============================================================
@@ -67,22 +77,19 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
-      // Supabase AuthのユーザーID
-      final userId = user.id;
-
-      // profilesテーブルからusernameを取得
+      // 表示用のユーザーID・アイコンは profiles テーブルに保存している。
       final profile = await supabase
           .from('profiles')
-          .select('username')
-          .eq('id', userId)
+          .select('username, user_id, avatar_url')
+          .eq('id', user.id)
           .maybeSingle();
 
       if (!mounted) return;
 
       setState(() {
-        _userId = userId;
-        _username =
-            profile?['username']?.toString() ?? 'ユーザー名未設定';
+        _userId = profile?['user_id']?.toString() ?? user.id;
+        _username = profile?['username']?.toString() ?? 'ユーザー名未設定';
+        _avatarUrl = profile?['avatar_url']?.toString();
 
         _isLoadingProfile = false;
       });
@@ -108,9 +115,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (index == 0) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const NewsHomePage(),
-        ),
+        MaterialPageRoute(builder: (context) => const NewsHomePage()),
       );
 
       return;
@@ -118,9 +123,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // 地図
     if (index == 1) {
-      setState(() {
-        _selectedIndex = index;
-      });
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const WorldMapPage()),
+      );
 
       return;
     }
@@ -136,9 +142,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // 設定
     if (index == 3) {
-      setState(() {
-        _selectedIndex = index;
-      });
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SettingsPage()),
+      );
 
       return;
     }
@@ -154,10 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 12,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           children: [
             // ======================================================
             // ヘッダー
@@ -182,7 +186,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         Icons.person_add_outlined,
                         color: textColor,
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AddFriendPage(),
+                          ),
+                        );
+                      },
                     ),
 
                     IconButton(
@@ -202,7 +212,9 @@ class _ProfilePageState extends State<ProfilePage> {
             // ======================================================
             // プロフィールアイコン
             // ======================================================
+            Center(child: _buildAvatar()),
 
+<<<<<<< HEAD
             Center(
               child: Container(
                 width: 96,
@@ -218,6 +230,45 @@ class _ProfilePageState extends State<ProfilePage> {
                       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
                     ),
                     fit: BoxFit.cover,
+=======
+            const SizedBox(height: 10),
+
+            Center(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const FriendListPage()),
+                    );
+                    _loadFriendCount();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.people_outline,
+                          size: 18,
+                          color: Color(0xFF475569),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'フレンド $_friendCount人',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+>>>>>>> origin/feature/news-home
                   ),
                 ),
               ),
@@ -228,11 +279,8 @@ class _ProfilePageState extends State<ProfilePage> {
             // ======================================================
             // ユーザー情報
             // ======================================================
-
             if (_isLoadingProfile)
-              const Center(
-                child: CircularProgressIndicator(),
-              )
+              const Center(child: CircularProgressIndicator())
             else
               Container(
                 width: double.infinity,
@@ -270,17 +318,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
                     const SizedBox(height: 16),
 
-                    const Divider(
-                      height: 1,
-                      color: Color(0xFFE2E8F0),
-                    ),
+                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
                     const SizedBox(height: 16),
 
                     // ------------------------------------------------
                     // ユーザーID
                     // ------------------------------------------------
-
                     const Text(
                       'ユーザーID',
                       style: TextStyle(
@@ -294,10 +338,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                     SelectableText(
                       _userId,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: textColor,
-                      ),
+                      style: const TextStyle(fontSize: 13, color: textColor),
                     ),
                   ],
                 ),
@@ -305,17 +346,17 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 24),
 
-            const Divider(
-              color: Color(0xFFCBD5E1),
-              thickness: 1,
-            ),
+            const Divider(color: Color(0xFFCBD5E1), thickness: 1),
 
             const SizedBox(height: 14),
 
             // ======================================================
             // Pins
             // ======================================================
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/feature/news-home
             const Text(
               '📌 Pins',
               style: TextStyle(
@@ -327,8 +368,32 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 12),
 
-            ..._pins.map(
-              (pin) => _buildPinCard(pin),
+            FutureBuilder<List<PinnedNews>>(
+              future: _pinnedNewsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final pins = snapshot.data ?? [];
+                if (pins.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 28),
+                    child: Center(
+                      child: Text(
+                        'ホームで気に入ったニュースをピン留めすると表示されます',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(children: pins.map(_buildPinCard).toList());
+              },
             ),
           ],
         ),
@@ -337,7 +402,6 @@ class _ProfilePageState extends State<ProfilePage> {
       // ============================================================
       // 下部ナビゲーション
       // ============================================================
-
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: backgroundColor,
@@ -354,10 +418,7 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icon(Icons.location_on_outlined),
             label: '地図',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'マイページ',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
             label: '設定',
@@ -371,6 +432,7 @@ class _ProfilePageState extends State<ProfilePage> {
   // Pinsカード
   // ============================================================
 
+<<<<<<< HEAD
   Widget _buildPinCard(
     Map<String, String> pin,
   ) {
@@ -378,6 +440,11 @@ class _ProfilePageState extends State<ProfilePage> {
       margin: const EdgeInsets.only(
         bottom: 12,
       ),
+=======
+  Widget _buildPinCard(PinnedNews pin) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+>>>>>>> origin/feature/news-home
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -389,16 +456,12 @@ class _ProfilePageState extends State<ProfilePage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.network(
-              pin['imageUrl']!,
+              pin.thumbnailUrl,
               width: 72,
               height: 72,
               fit: BoxFit.cover,
 
-              errorBuilder: (
-                context,
-                error,
-                stackTrace,
-              ) {
+              errorBuilder: (context, error, stackTrace) {
                 return Container(
                   width: 72,
                   height: 72,
@@ -416,11 +479,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
           Expanded(
             child: Column(
+<<<<<<< HEAD
               crossAxisAlignment:
                   CrossAxisAlignment.start,
+=======
+              crossAxisAlignment: CrossAxisAlignment.start,
+>>>>>>> origin/feature/news-home
               children: [
                 Text(
-                  pin['title']!,
+                  pin.title,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -433,7 +500,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 6),
 
                 Text(
-                  pin['date']!,
+                  pin.source.isNotEmpty
+                      ? pin.source
+                      : '${pin.pinnedAt.year}/${pin.pinnedAt.month.toString().padLeft(2, '0')}/${pin.pinnedAt.day.toString().padLeft(2, '0')}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF94A3B8),
@@ -444,6 +513,32 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    const size = 96.0;
+    final avatarUrl = _avatarUrl;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: avatarUrl == null || avatarUrl.isEmpty
+          ? const Icon(Icons.person, size: 48, color: Color(0xFF94A3B8))
+          : Image.network(
+              avatarUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.person,
+                size: 48,
+                color: Color(0xFF94A3B8),
+              ),
+            ),
     );
   }
 }
