@@ -4,12 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'add_friend.dart';
 import 'friend_list_page.dart';
 import 'news/news_home_page.dart';
-<<<<<<< HEAD
-=======
 import 'pinned_news_store.dart';
 import 'settings_page.dart';
 import 'world_map_page.dart';
->>>>>>> origin/feature/news-home
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -25,10 +22,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _username = '読み込み中...';
   String? _avatarUrl;
   bool _isLoadingProfile = true;
-<<<<<<< HEAD
-=======
   int _friendCount = 0;
->>>>>>> origin/feature/news-home
 
   late Future<List<PinnedNews>> _pinnedNewsFuture;
 
@@ -214,23 +208,6 @@ class _ProfilePageState extends State<ProfilePage> {
             // ======================================================
             Center(child: _buildAvatar()),
 
-<<<<<<< HEAD
-            Center(
-              child: Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 3,
-                  ),
-                  image: const DecorationImage(
-                    image: NetworkImage(
-                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-                    ),
-                    fit: BoxFit.cover,
-=======
             const SizedBox(height: 10),
 
             Center(
@@ -268,7 +245,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ],
                     ),
->>>>>>> origin/feature/news-home
                   ),
                 ),
               ),
@@ -353,10 +329,6 @@ class _ProfilePageState extends State<ProfilePage> {
             // ======================================================
             // Pins
             // ======================================================
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/feature/news-home
             const Text(
               '📌 Pins',
               style: TextStyle(
@@ -432,19 +404,9 @@ class _ProfilePageState extends State<ProfilePage> {
   // Pinsカード
   // ============================================================
 
-<<<<<<< HEAD
-  Widget Container Container _buildPinCard(
-    Map<String, String> pin,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(
-        bottom: 12,
-      ),
-=======
   Widget _buildPinCard(PinnedNews pin) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
->>>>>>> origin/feature/news-home
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -479,12 +441,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           Expanded(
             child: Column(
-<<<<<<< HEAD
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-=======
               crossAxisAlignment: CrossAxisAlignment.start,
->>>>>>> origin/feature/news-home
               children: [
                 Text(
                   pin.title,
