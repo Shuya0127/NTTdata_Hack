@@ -67,7 +67,7 @@ class _FriendListPageState extends State<FriendListPage> {
                   const Expanded(
                     child: Center(
                       child: Text(
-                        'フォロー中',
+                        'フレンド一覧',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
