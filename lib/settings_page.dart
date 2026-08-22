@@ -1,6 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'news/news_home_page.dart';
+import 'profile_edit_page.dart';
+import 'profile_page.dart';
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -20,7 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFFE4EBF5); // 背景色
-    const textColor = Color(0xFF334155);       // テキスト色
+    const textColor = Color(0xFF334155); // テキスト色
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -44,11 +48,14 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionHeader('アカウント'),
             const SizedBox(height: 8),
             _buildCardGroup([
-              _buildNavTile(title: 'プロフィール編集', onTap: () {}),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-              _buildNavTile(title: 'メールアドレスの変更', onTap: () {}),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-              _buildNavTile(title: 'パスワードの変更', onTap: () {}),
+              _buildNavTile(
+                title: 'プロフィール編集',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ProfileEditPage()),
+                  );
+                },
+              ),
             ]),
 
             const SizedBox(height: 24),
@@ -86,6 +93,22 @@ class _SettingsPageState extends State<SettingsPage> {
         unselectedItemColor: const Color(0xFF94A3B8),
         currentIndex: _selectedIndex,
         onTap: (index) {
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const NewsHomePage()),
+            );
+            return;
+          }
+
+          if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfilePage()),
+            );
+            return;
+          }
+
           setState(() {
             _selectedIndex = index;
           });
@@ -103,10 +126,7 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: Icon(Icons.person_outline),
             label: 'マイページ',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: '設定',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '設定'),
         ],
       ),
     );
@@ -126,11 +146,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // 角丸白背景のカード枠
   Widget _buildCardGroup(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
       child: Column(children: children),
     );
   }

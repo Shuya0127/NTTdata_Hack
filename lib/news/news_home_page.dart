@@ -8,7 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../add_friend.dart';
+import '../pinned_news_store.dart';
 import '../profile_page.dart';
+import '../settings_page.dart';
 
 class NewsHomePage extends StatefulWidget {
   const NewsHomePage({super.key});
@@ -31,6 +33,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
   DateTime? _selectedAt;
   String? _currentNewsUrl;
+  Set<String> _pinnedNewsIds = {};
 
   @override
   void initState() {
@@ -40,6 +43,47 @@ class _NewsHomePageState extends State<NewsHomePage> {
     // 5分以内のニュースが保存されていれば再利用
     // 5分以上経っていれば新しくランダム取得
     _newsFuture = _loadNews();
+    _loadPinnedNews();
+  }
+
+  Future<void> _loadPinnedNews() async {
+    final pinnedNews = await PinnedNewsStore.load();
+
+    if (!mounted) return;
+
+    setState(() {
+      _pinnedNewsIds = pinnedNews.map((news) => news.id).toSet();
+    });
+  }
+
+  Future<void> _togglePinnedNews({
+    required String title,
+    required String url,
+    required String thumbnailUrl,
+    required String source,
+  }) async {
+    final news = PinnedNews(
+      title: title,
+      url: url,
+      thumbnailUrl: thumbnailUrl,
+      source: source,
+      pinnedAt: DateTime.now(),
+    );
+    final isPinned = await PinnedNewsStore.toggle(news);
+
+    if (!mounted) return;
+
+    setState(() {
+      if (isPinned) {
+        _pinnedNewsIds.add(news.id);
+      } else {
+        _pinnedNewsIds.remove(news.id);
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(isPinned ? 'ニュースをピン留めしました' : 'ピン留めを解除しました')),
+    );
   }
 
   // ============================================================
@@ -620,6 +664,9 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
                   final String country = news['country']?.toString() ?? 'ANY';
 
+                  final newsId = url.isNotEmpty ? url : title;
+                  final isPinned = _pinnedNewsIds.contains(newsId);
+
                   return Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(18),
@@ -686,6 +733,26 @@ class _NewsHomePageState extends State<NewsHomePage> {
                               height: 1.4,
                               color: Color(0xFF111827),
                             ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed: () => _togglePinnedNews(
+                              title: title,
+                              url: url,
+                              thumbnailUrl: thumbnailUrl,
+                              source: source,
+                            ),
+                            icon: Icon(
+                              isPinned
+                                  ? Icons.push_pin
+                                  : Icons.push_pin_outlined,
+                            ),
+                            label: Text(isPinned ? 'ピン留め済み' : 'ピン留めする'),
                           ),
                         ),
 
@@ -960,7 +1027,18 @@ class _BottomNavigation extends StatelessWidget {
                 },
               ),
 
-              _NavItem(icon: Icons.settings_outlined, label: '設定'),
+              _NavItem(
+                icon: Icons.settings_outlined,
+                label: '設定',
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsPage(),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),

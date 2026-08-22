@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'add_friend.dart';
 import 'news/news_home_page.dart';
+import 'pinned_news_store.dart';
+import 'settings_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -18,24 +20,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _username = '読み込み中...';
   bool _isLoadingProfile = true;
 
-  // Pins のデータ
-  final List<Map<String, String>> _pins = [
-    {
-      'title': 'AIが変える未来の働き方とは',
-      'date': '2024/12/15',
-      'imageUrl': 'https://picsum.photos/seed/ai/200',
-    },
-    {
-      'title': '東京の隠れた名店グルメ特集',
-      'date': '2024/12/10',
-      'imageUrl': 'https://picsum.photos/seed/gourmet/200',
-    },
-    {
-      'title': '宇宙開発の最新トレンド2025',
-      'date': '2024/12/08',
-      'imageUrl': 'https://picsum.photos/seed/space/200',
-    },
-  ];
+  late Future<List<PinnedNews>> _pinnedNewsFuture;
 
   @override
   void initState() {
@@ -43,6 +28,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // Supabaseからログイン中ユーザーの情報を取得
     _loadProfile();
+    _pinnedNewsFuture = PinnedNewsStore.load();
   }
 
   // ============================================================
@@ -134,9 +120,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // 設定
     if (index == 3) {
-      setState(() {
-        _selectedIndex = index;
-      });
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SettingsPage()),
+      );
 
       return;
     }
@@ -310,7 +297,33 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 12),
 
-            ..._pins.map((pin) => _buildPinCard(pin)),
+            FutureBuilder<List<PinnedNews>>(
+              future: _pinnedNewsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final pins = snapshot.data ?? [];
+                if (pins.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 28),
+                    child: Center(
+                      child: Text(
+                        'ホームで気に入ったニュースをピン留めすると表示されます',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(children: pins.map(_buildPinCard).toList());
+              },
+            ),
           ],
         ),
       ),
@@ -348,7 +361,7 @@ class _ProfilePageState extends State<ProfilePage> {
   // Pinsカード
   // ============================================================
 
-  Widget _buildPinCard(Map<String, String> pin) {
+  Widget _buildPinCard(PinnedNews pin) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -362,7 +375,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.network(
-              pin['imageUrl']!,
+              pin.thumbnailUrl,
               width: 72,
               height: 72,
               fit: BoxFit.cover,
@@ -388,7 +401,7 @@ class _ProfilePageState extends State<ProfilePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  pin['title']!,
+                  pin.title,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -401,7 +414,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 6),
 
                 Text(
-                  pin['date']!,
+                  pin.source.isNotEmpty
+                      ? pin.source
+                      : '${pin.pinnedAt.year}/${pin.pinnedAt.month.toString().padLeft(2, '0')}/${pin.pinnedAt.day.toString().padLeft(2, '0')}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF94A3B8),
