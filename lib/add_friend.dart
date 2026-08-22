@@ -29,10 +29,15 @@ class _AddFriendPageState extends State<AddFriendPage> {
     super.dispose();
   }
 
-  // --- 1. 承認待ちリストを取得する処理 ---
+// --- 1. 承認待ちリストを取得する処理 ---
   Future<void> _fetchPendingRequests() async {
-    final currentUserId = supabase.auth.currentUser?.id;
-    if (currentUserId == null) return;
+    // ★ここを受信者（wtatsuki2027さん）のIDに仮置きして「なりすまし」ます
+    final currentUserId = supabase.auth.currentUser?.id ?? '57865d04-98f1-4648-907d-458063d8e9a2'; // ←コピーしたreceiver_idをフルで貼り付け！
+
+    if (currentUserId.isEmpty || currentUserId == '57865d04-xxxx-xxxx-xxxx-xxxxxxxxxxxx') {
+       // もしそのままコピペしてしまった場合のためのエラー回避
+       // 自分の場合はここは消してもOKです
+    }
 
     try {
       // friendshipsテーブルから、自分が受信者で status が pending のものを探す
@@ -98,19 +103,27 @@ class _AddFriendPageState extends State<AddFriendPage> {
     }
   }
 
-  // --- 3. ユーザー検索処理 ---
+// --- 3. ユーザー検索処理 ---
   Future<void> _searchUsers(String query) async {
     if (query.isEmpty) return;
     setState(() => _isLoading = true);
 
     try {
       final currentUserId = supabase.auth.currentUser?.id;
-      final response = await supabase
+      
+      // ① まず「検索条件（フィルター）」までを変数にセットする（limitはまだつけない）
+      var dbFilter = supabase
           .from('profiles')
           .select('id, username')
-          .neq('id', currentUserId ?? '')
-          .ilike('username', '%$query%')
-          .limit(10);
+          .ilike('username', '%$query%');
+
+      // ② ログインしている時だけ、自分を除外する条件を追加
+      if (currentUserId != null && currentUserId.isNotEmpty) {
+        dbFilter = dbFilter.neq('id', currentUserId);
+      }
+
+      // ③ 最後に .limit(10) をくっつけて実行（await）する！
+      final response = await dbFilter.limit(10);
 
       setState(() {
         _searchResults = List<Map<String, dynamic>>.from(response);
@@ -124,10 +137,18 @@ class _AddFriendPageState extends State<AddFriendPage> {
     }
   }
 
-  // --- 4. フレンドリクエスト送信処理 ---
+// --- 4. フレンドリクエスト送信処理 ---
   Future<void> _sendFriendRequest(String receiverId) async {
-    final currentUserId = supabase.auth.currentUser?.id;
-    if (currentUserId == null) return;
+    // ★ログインIDが取得できないテスト環境用に、ダミーの自分自身のIDを仮置きします。
+    // Supabaseのprofilesテーブルから、あなた自身のテスト用UUIDをコピーしてここに入れてください。
+    final currentUserId = supabase.auth.currentUser?.id ?? '82aa5989-3192-42cb-8140-b9cebe2db4b9'; 
+    
+    if (currentUserId.isEmpty || currentUserId == 'あなた自身のテスト用UUIDをコピーしてここに入れてください') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('テスト用のUUIDが設定されていません。コードを書き換えてください。')),
+      );
+      return;
+    }
 
     try {
       await supabase.from('friendships').insert({
@@ -144,7 +165,8 @@ class _AddFriendPageState extends State<AddFriendPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('既にリクエスト送信済み、またはエラーが発生しました')),
+          // 何のエラーか分かりやすいように詳細を表示
+          SnackBar(content: Text('送信エラー: $e')), 
         );
       }
     }
