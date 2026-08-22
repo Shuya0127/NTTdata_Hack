@@ -34,27 +34,119 @@ class FriendRequestsPage extends StatefulWidget {
 
 class _FriendRequestsPageState extends State<FriendRequestsPage> {
   late final List<FriendRequest> _requests;
+  bool _isLoading = true;
+  String? _loadError;
 
   @override
   void initState() {
     super.initState();
     _requests = List.of(widget.initialRequests);
+    _loadRequests();
   }
 
-  void _respondToRequest(FriendRequest request, {required bool approved}) {
-    setState(() {
-      _requests.removeWhere((item) => item.id == request.id);
-    });
+  Future<void> _loadRequests() async {
+    final client = Supabase.instance.client;
+    final currentUser = client.auth.currentUser;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          approved
-              ? '@${request.username}さんの申請を承認しました'
-              : '@${request.username}さんの申請を拒否しました',
+    if (currentUser == null) {
+      setState(() {
+        _isLoading = false;
+        _loadError = 'ログインするとフレンド申請を確認できます';
+      });
+      return;
+    }
+
+    try {
+      final requests = await client
+          .from('friendships')
+          .select('id, sender_id')
+          .eq('receiver_id', currentUser.id)
+          .eq('status', 'pending');
+      final requestRows = List<Map<String, dynamic>>.from(requests);
+
+      if (requestRows.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _requests.clear();
+          _isLoading = false;
+          _loadError = null;
+        });
+        return;
+      }
+
+      final senderIds = requestRows
+          .map((request) => request['sender_id'].toString())
+          .toList();
+      final profiles = await client
+          .from('profiles')
+          .select('id, username')
+          .inFilter('id', senderIds);
+      final profilesById = {
+        for (final profile in List<Map<String, dynamic>>.from(profiles))
+          profile['id'].toString(): profile,
+      };
+
+      if (!mounted) return;
+      setState(() {
+        _requests
+          ..clear()
+          ..addAll(
+            requestRows.map((request) {
+              final senderId = request['sender_id'].toString();
+              final profile = profilesById[senderId];
+              return FriendRequest(
+                id: request['id'].toString(),
+                userId: senderId,
+                username: profile?['username']?.toString() ?? 'ユーザー名未設定',
+              );
+            }),
+          );
+        _isLoading = false;
+        _loadError = null;
+      });
+    } catch (error) {
+      debugPrint('フレンド申請取得エラー: $error');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadError = 'フレンド申請の取得に失敗しました';
+      });
+    }
+  }
+
+  Future<void> _respondToRequest(
+    FriendRequest request, {
+    required bool approved,
+  }) async {
+    final status = approved ? 'accepted' : 'rejected';
+
+    try {
+      await Supabase.instance.client
+          .from('friendships')
+          .update({'status': status})
+          .eq('id', request.id);
+
+      if (!mounted) return;
+      setState(() {
+        _requests.removeWhere((item) => item.id == request.id);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            approved
+                ? '@${request.username}さんの申請を承認しました'
+                : '@${request.username}さんの申請を拒否しました',
+          ),
         ),
-      ),
-    );
+      );
+    } catch (error) {
+      debugPrint('フレンド申請更新エラー: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('フレンド申請の更新に失敗しました')));
+    }
   }
 
   @override
@@ -84,7 +176,16 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
           ),
         ),
       ),
-      body: _requests.isEmpty
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+          ? Center(
+              child: Text(
+                _loadError!,
+                style: const TextStyle(fontSize: 14, color: subTextColor),
+              ),
+            )
+          : _requests.isEmpty
           ? const Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -251,6 +352,45 @@ class _AddFriendPageState extends State<AddFriendPage> {
     }
   }
 
+  Future<void> _sendFriendRequest() async {
+    final profile = _searchResult;
+    final currentUser = Supabase.instance.client.auth.currentUser;
+
+    if (profile == null || currentUser == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ログインしてからフレンド申請を送信してください')));
+      return;
+    }
+
+    final receiverId = profile['id'].toString();
+    if (receiverId == currentUser.id) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('自分自身にはフレンド申請を送信できません')));
+      return;
+    }
+
+    try {
+      await Supabase.instance.client.from('friendships').insert({
+        'sender_id': currentUser.id,
+        'receiver_id': receiverId,
+        'status': 'pending',
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('フレンド申請を送信しました')));
+    } catch (error) {
+      debugPrint('フレンド申請送信エラー: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('フレンド申請の送信に失敗しました')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFFE4EBF5);
@@ -401,6 +541,15 @@ class _AddFriendPageState extends State<AddFriendPage> {
                                 ),
                               ],
                             ),
+                          ),
+                          ElevatedButton(
+                            onPressed: _sendFriendRequest,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                            ),
+                            child: const Text('追加する'),
                           ),
                         ],
                       ),

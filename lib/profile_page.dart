@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'add_friend.dart';
+import 'friend_list_page.dart';
 import 'news/news_home_page.dart';
 import 'pinned_news_store.dart';
 import 'settings_page.dart';
@@ -20,6 +21,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _userId = '読み込み中...';
   String _username = '読み込み中...';
   bool _isLoadingProfile = true;
+  int _friendCount = 0;
 
   late Future<List<PinnedNews>> _pinnedNewsFuture;
 
@@ -29,7 +31,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // Supabaseからログイン中ユーザーの情報を取得
     _loadProfile();
+    _loadFriendCount();
     _pinnedNewsFuture = PinnedNewsStore.load();
+  }
+
+  Future<void> _loadFriendCount() async {
+    try {
+      final friends = await FriendRepository.loadFriends();
+      if (!mounted) return;
+      setState(() {
+        _friendCount = friends.length;
+      });
+    } catch (error) {
+      debugPrint('フレンド数取得エラー: $error');
+    }
   }
 
   // ============================================================
@@ -204,6 +219,48 @@ class _ProfilePageState extends State<ProfilePage> {
                       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
                     ),
                     fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Center(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const FriendListPage()),
+                    );
+                    _loadFriendCount();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.people_outline,
+                          size: 18,
+                          color: Color(0xFF475569),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'フレンド $_friendCount人',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
