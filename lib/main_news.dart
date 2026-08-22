@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -14,8 +15,11 @@ Future<void> main() async {
     publishableKey: SupabaseConfig.publishableKey,
   );
 
-  await Firebase.initializeApp();
-  await NotificationService.initialize();
+  // 通知機能はAndroid/iOS向け。Web(Chrome)にはFirebase設定が無いためスキップする。
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+    await NotificationService.initialize();
+  }
 
   runApp(const NewsApp());
 }
