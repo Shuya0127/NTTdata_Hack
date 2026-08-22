@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../news/news_home_page.dart';
 import 'login_page.dart';
@@ -24,6 +27,8 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
   final TextEditingController _birthdayController =
       TextEditingController();
 
+  final ImagePicker _imagePicker = ImagePicker();
+  Uint8List? _avatarBytes;
   bool _obscurePassword = true;
   bool _agreeTerms = false;
 
@@ -54,7 +59,144 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
     }
   }
 
-  Future<void> _createAccount() async {
+  Future<void> _pickProfileImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 800,
+      );
+      if (image == null) return;
+
+      final bytes = await image.readAsBytes();
+      if (!mounted) return;
+      setState(() => _avatarBytes = bytes);
+    } catch (_) {
+      if (mounted) _showError('画像を選択できませんでした');
+    }
+  }
+
+  Future<String> _uploadProfileImage(String authUserId) async {
+    final imageBytes = _avatarBytes;
+    if (imageBytes == null) throw StateError('プロフィール画像が選択されていません');
+
+    const bucket = 'profile-images';
+    // フォルダ階層を作らず、バケット直下にユニーク名で保存（RLSポリシーの階層不一致を回避）
+    final fileName = 'avatar_${authUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final storage = Supabase.instance.client.storage.from(bucket);
+
+    print('=== [DEBUG] Storage Upload Start: $fileName ===');
+
+    await storage.uploadBinary(
+      fileName,
+      imageBytes,
+      fileOptions: const FileOptions(
+        contentType: 'image/jpeg',
+        upsert: true,
+      ),
+    );
+
+    final publicUrl = storage.getPublicUrl(fileName);
+    print('=== [DEBUG] Storage Upload Success: $publicUrl ===');
+    return publicUrl;
+  }
+
+  Future<void> _createAccount() async {Future<void> _createAccount() async {
+    if (!_agreeTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('利用規約とプライバシーポリシーに同意してください'),
+        ),
+      );
+      return;
+    }
+
+    final supabase = Supabase.instance.client;
+    final userId = _userIdController.text.trim().toLowerCase();
+    final password = _passwordController.text.trim();
+    final username = _usernameController.text.trim();
+    final birthday = _birthdayController.text.trim();
+
+    if (!RegExp(r'^[a-z0-9_]{3,30}$').hasMatch(userId)) {
+      _showError('ユーザーIDは英小文字・数字・_ を使って3〜30文字で入力してください');
+      return;
+    }
+    if (username.isEmpty || birthday.isEmpty || password.length < 8) {
+      _showError('ユーザー名・生年月日・8文字以上のパスワードを入力してください');
+      return;
+    }
+
+    try {
+      final email = authEmailFromUserId(userId);
+
+      // 1. Supabase Auth にアカウント登録
+      final AuthResponse res = await supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      // 2. 画像アップロード権限を得るため、確実にログイン状態（セッション確立）にする
+      if (res.session == null) {
+        await supabase.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+      }
+
+      final User? user = supabase.auth.currentUser ?? res.user;
+
+      if (user != null) {
+        // 3. 画像のアップロード
+        String? avatarUrl;
+        if (_avatarBytes != null) {
+          try {
+            print('--- 画像アップロード開始: UserID=${user.id} ---');
+            avatarUrl = await _uploadProfileImage(user.id);
+            print('--- 画像アップロード成功: $avatarUrl ---');
+          } catch (e) {
+            print('--- Storageエラー詳細: $e ---');
+            rethrow; // エラーをそのまま外側に投げてSnackBarに表示
+          }
+        }
+
+        // 4. プロフィール情報の作成
+        final profile = <String, dynamic>{
+          'id': user.id,
+          'user_id': userId,
+          'username': username,
+          'birth_date': birthday.replaceAll(' / ', '-'),
+        };
+        if (avatarUrl != null) profile['avatar_url'] = avatarUrl;
+
+        // 5. profiles テーブルに保存
+        await supabase.from('profiles').insert(profile);
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NewsHomePage(),
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラー: $error'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(
+              label: '閉じる',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
+          ),
+        );
+      }
+    }
+  }
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -90,13 +232,19 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
       final User? user = res.user;
 
       if (user != null) {
-        // 2. profiles テーブルにプロフィール情報を保存
-        await supabase.from('profiles').insert({
+        final avatarUrl = _avatarBytes == null
+            ? null
+            : await _uploadProfileImage(user.id);
+        final profile = <String, dynamic>{
           'id': user.id,
           'user_id': userId,
           'username': username,
           'birth_date': birthday.replaceAll(' / ', '-'),
-        });
+        };
+        if (avatarUrl != null) profile['avatar_url'] = avatarUrl;
+
+        // 2. profiles テーブルにプロフィール情報を保存
+        await supabase.from('profiles').insert(profile);
 
         // 【変更点1】成功したら通知ではなく、ニュースのホーム画面へ遷移する
         if (mounted) {
@@ -186,13 +334,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
               // ============================
 
               GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('画像選択機能はあとで実装します'),
-                    ),
-                  );
-                },
+                onTap: _pickProfileImage,
                 child: Container(
                   width: 92,
                   height: 92,
@@ -203,30 +345,38 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
                       color: const Color(0xFFCBD5E1),
                     ),
                   ),
-                  child: Center(
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF94A3B8),
+                  clipBehavior: Clip.antiAlias,
+                  child: _avatarBytes != null
+                      ? Image.memory(
+                          _avatarBytes!,
+                          width: 92,
+                          height: 92,
+                          fit: BoxFit.cover,
+                        )
+                      : Center(
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFF94A3B8),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.photo_camera_outlined,
+                              size: 21,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
                         ),
-                      ),
-                      child: const Icon(
-                        Icons.photo_camera_outlined,
-                        size: 21,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ),
                 ),
               ),
 
               const SizedBox(height: 10),
 
               const Text(
-                'プロフィール写真を追加',
+                'プロフィール写真を追加（タップして選択）',
                 style: TextStyle(
                   fontSize: 13,
                   color: Color(0xFF64748B),
