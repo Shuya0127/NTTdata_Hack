@@ -2,10 +2,8 @@ name: Get and save daily news
 
 on:
   schedule:
-    # 日本時間 9:00〜20:55 の5分おきに実行 (UTC 0:00〜11:55)
-    - cron: "*/5 0-11 * * *"
-    # 日本時間 21:00 (UTC 12:00) で最後の通知
-    - cron: "0 12 * * *"
+    # 1日中(0:00〜24:00)、5分おきに実行
+    - cron: "*/5 * * * *"
   workflow_dispatch: # GitHub画面から手動実行するためのボタン
 
 jobs:
