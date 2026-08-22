@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/supabase_config.dart';
-import 'profile_page.dart';
+import 'world_map_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,17 +12,19 @@ Future<void> main() async {
     publishableKey: SupabaseConfig.publishableKey,
   );
 
-  runApp(const ProfileApp());
+  runApp(const WorldMapApp());
 }
 
-class ProfileApp extends StatelessWidget {
-  const ProfileApp({super.key});
+class WorldMapApp extends StatelessWidget {
+  const WorldMapApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: ProfilePage(),
+      title: 'ワールドマップ',
+      theme: ThemeData(useMaterial3: true),
+      home: const WorldMapPage(),
     );
   }
 }
