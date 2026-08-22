@@ -7,6 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../add_friend.dart';
+import '../profile_page.dart';
+
 class NewsHomePage extends StatefulWidget {
   const NewsHomePage({super.key});
 
@@ -46,53 +49,37 @@ class _NewsHomePageState extends State<NewsHomePage> {
   Future<Map<String, dynamic>?> _loadNews() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final cachedNewsJson =
-        prefs.getString(_cachedNewsKey);
+    final cachedNewsJson = prefs.getString(_cachedNewsKey);
 
-    final cachedTimeText =
-        prefs.getString(_cachedNewsTimeKey);
+    final cachedTimeText = prefs.getString(_cachedNewsTimeKey);
 
     // 保存済みニュースが存在する場合
-    if (cachedNewsJson != null &&
-        cachedTimeText != null) {
+    if (cachedNewsJson != null && cachedTimeText != null) {
       try {
-        final cachedTime =
-            DateTime.parse(cachedTimeText);
+        final cachedTime = DateTime.parse(cachedTimeText);
 
-        final decoded =
-            jsonDecode(cachedNewsJson);
+        final decoded = jsonDecode(cachedNewsJson);
 
-        final cachedNews =
-            Map<String, dynamic>.from(
-          decoded as Map,
-        );
+        final cachedNews = Map<String, dynamic>.from(decoded as Map);
 
-        final elapsed =
-            DateTime.now().difference(cachedTime);
+        final elapsed = DateTime.now().difference(cachedTime);
 
-        _currentNewsUrl =
-            cachedNews['url']?.toString();
+        _currentNewsUrl = cachedNews['url']?.toString();
 
         // まだ5分経っていない
         if (elapsed < _refreshInterval) {
           _selectedAt = cachedTime;
 
-          debugPrint(
-            '保存済みニュースを表示します',
-          );
+          debugPrint('保存済みニュースを表示します');
 
-          debugPrint(
-            '経過時間: ${elapsed.inSeconds}秒',
-          );
+          debugPrint('経過時間: ${elapsed.inSeconds}秒');
 
           _scheduleNextRefresh();
 
           return cachedNews;
         }
       } catch (e) {
-        debugPrint(
-          '保存済みニュース読み込みエラー: $e',
-        );
+        debugPrint('保存済みニュース読み込みエラー: $e');
       }
     }
 
@@ -113,27 +100,17 @@ class _NewsHomePageState extends State<NewsHomePage> {
           .select(
             'title, url, content, thumbnail_url, source, published_at, country',
           )
-
           // thumbnail_urlが空ではないニュースだけ
           .neq('thumbnail_url', '')
-
           // 新しいニュースから順番に
-          .order(
-            'published_at',
-            ascending: false,
-          )
-
+          .order('published_at', ascending: false)
           // 最新100件だけ取得
           .limit(100);
 
-      debugPrint(
-        'Supabaseから取得したニュース数: ${data.length}',
-      );
+      debugPrint('Supabaseから取得したニュース数: ${data.length}');
 
       if (data.isEmpty) {
-        debugPrint(
-          '画像付きニュースがありません',
-        );
+        debugPrint('画像付きニュースがありません');
 
         return null;
       }
@@ -143,35 +120,25 @@ class _NewsHomePageState extends State<NewsHomePage> {
       // ========================================================
 
       var validNews = data.where((news) {
-        final imageUrl =
-            news['thumbnail_url']
-                    ?.toString()
-                    .trim() ??
-                '';
+        final imageUrl = news['thumbnail_url']?.toString().trim() ?? '';
 
         if (imageUrl.isEmpty) {
           return false;
         }
 
-        final uri =
-            Uri.tryParse(imageUrl);
+        final uri = Uri.tryParse(imageUrl);
 
         if (uri == null) {
           return false;
         }
 
-        return uri.scheme == 'http' ||
-            uri.scheme == 'https';
+        return uri.scheme == 'http' || uri.scheme == 'https';
       }).toList();
 
-      debugPrint(
-        '有効な画像URLを持つニュース数: ${validNews.length}',
-      );
+      debugPrint('有効な画像URLを持つニュース数: ${validNews.length}');
 
       if (validNews.isEmpty) {
-        debugPrint(
-          '有効な画像URLを持つニュースがありません',
-        );
+        debugPrint('有効な画像URLを持つニュースがありません');
 
         return null;
       }
@@ -180,12 +147,9 @@ class _NewsHomePageState extends State<NewsHomePage> {
       // 前回と同じ記事をできるだけ避ける
       // ========================================================
 
-      if (_currentNewsUrl != null &&
-          validNews.length > 1) {
-        final filteredNews =
-            validNews.where((news) {
-          final newsUrl =
-              news['url']?.toString() ?? '';
+      if (_currentNewsUrl != null && validNews.length > 1) {
+        final filteredNews = validNews.where((news) {
+          final newsUrl = news['url']?.toString() ?? '';
 
           return newsUrl != _currentNewsUrl;
         }).toList();
@@ -201,25 +165,16 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
       final random = Random();
 
-      final randomIndex =
-          random.nextInt(validNews.length);
+      final randomIndex = random.nextInt(validNews.length);
 
-      final randomNews =
-          Map<String, dynamic>.from(
-        validNews[randomIndex],
-      );
+      final randomNews = Map<String, dynamic>.from(validNews[randomIndex]);
 
-      debugPrint(
-        'ランダムに選ばれたニュース: $randomNews',
-      );
+      debugPrint('ランダムに選ばれたニュース: $randomNews');
 
-      debugPrint(
-        '画像URL: ${randomNews['thumbnail_url']}',
-      );
+      debugPrint('画像URL: ${randomNews['thumbnail_url']}');
 
       // 現在の記事URLを保存
-      _currentNewsUrl =
-          randomNews['url']?.toString();
+      _currentNewsUrl = randomNews['url']?.toString();
 
       // 選択した時刻を保存
       final now = DateTime.now();
@@ -230,27 +185,18 @@ class _NewsHomePageState extends State<NewsHomePage> {
       // 端末にニュースを保存
       // ========================================================
 
-      final prefs =
-          await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
 
-      await prefs.setString(
-        _cachedNewsKey,
-        jsonEncode(randomNews),
-      );
+      await prefs.setString(_cachedNewsKey, jsonEncode(randomNews));
 
-      await prefs.setString(
-        _cachedNewsTimeKey,
-        now.toIso8601String(),
-      );
+      await prefs.setString(_cachedNewsTimeKey, now.toIso8601String());
 
       // 5分後に次の記事へ変更
       _scheduleNextRefresh();
 
       return randomNews;
     } catch (e) {
-      debugPrint(
-        'Supabase取得エラー: $e',
-      );
+      debugPrint('Supabase取得エラー: $e');
 
       rethrow;
     }
@@ -264,32 +210,22 @@ class _NewsHomePageState extends State<NewsHomePage> {
     // 既存Timerがあれば停止
     _newsRefreshTimer?.cancel();
 
-    final selectedAt =
-        _selectedAt ?? DateTime.now();
+    final selectedAt = _selectedAt ?? DateTime.now();
 
-    final elapsed =
-        DateTime.now().difference(
-      selectedAt,
-    );
+    final elapsed = DateTime.now().difference(selectedAt);
 
-    var remaining =
-        _refreshInterval - elapsed;
+    var remaining = _refreshInterval - elapsed;
 
     // すでに5分経っている場合
     if (remaining.isNegative) {
       remaining = Duration.zero;
     }
 
-    debugPrint(
-      '次のニュース更新まで ${remaining.inSeconds} 秒',
-    );
+    debugPrint('次のニュース更新まで ${remaining.inSeconds} 秒');
 
-    _newsRefreshTimer = Timer(
-      remaining,
-      () {
-        _refreshNews();
-      },
-    );
+    _newsRefreshTimer = Timer(remaining, () {
+      _refreshNews();
+    });
   }
 
   // ============================================================
@@ -301,9 +237,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
       return;
     }
 
-    debugPrint(
-      '5分経過したためニュースを更新します',
-    );
+    debugPrint('5分経過したためニュースを更新します');
 
     setState(() {
       _newsFuture = _getRandomNews();
@@ -339,69 +273,46 @@ class _NewsHomePageState extends State<NewsHomePage> {
     if (url.trim().isEmpty) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'ニュースURLが登録されていません',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ニュースURLが登録されていません')));
 
       return;
     }
 
-    final Uri? newsUri =
-        Uri.tryParse(url.trim());
+    final Uri? newsUri = Uri.tryParse(url.trim());
 
     if (newsUri == null ||
-        !(newsUri.scheme == 'http' ||
-            newsUri.scheme == 'https')) {
+        !(newsUri.scheme == 'http' || newsUri.scheme == 'https')) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'ニュースURLが正しくありません',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ニュースURLが正しくありません')));
 
       return;
     }
 
     try {
-      final bool opened =
-          await launchUrl(
+      final bool opened = await launchUrl(
         newsUri,
-        mode:
-            LaunchMode.externalApplication,
+        mode: LaunchMode.externalApplication,
         webOnlyWindowName: '_blank',
       );
 
       if (!opened && mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
-          const SnackBar(
-            content: Text(
-              'ニュースサイトを開けませんでした',
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('ニュースサイトを開けませんでした')));
       }
     } catch (e) {
-      debugPrint(
-        'URLを開く際のエラー: $e',
-      );
+      debugPrint('URLを開く際のエラー: $e');
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'ニュースサイトを開けませんでした: $e',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('ニュースサイトを開けませんでした: $e')));
     }
   }
 
@@ -435,16 +346,13 @@ class _NewsHomePageState extends State<NewsHomePage> {
   // ニュース画像
   // ============================================================
 
-  Widget _buildNewsImage(
-    String thumbnailUrl,
-  ) {
+  Widget _buildNewsImage(String thumbnailUrl) {
     if (thumbnailUrl.trim().isEmpty) {
       return _buildImagePlaceholder();
     }
 
     return ClipRRect(
-      borderRadius:
-          BorderRadius.circular(17),
+      borderRadius: BorderRadius.circular(17),
       child: SizedBox(
         height: 180,
         width: double.infinity,
@@ -455,38 +363,29 @@ class _NewsHomePageState extends State<NewsHomePage> {
           fit: BoxFit.cover,
 
           // 読み込み中
-          loadingBuilder: (
-            BuildContext context,
-            Widget child,
-            ImageChunkEvent?
-                loadingProgress,
-          ) {
-            if (loadingProgress == null) {
-              return child;
-            }
+          loadingBuilder:
+              (
+                BuildContext context,
+                Widget child,
+                ImageChunkEvent? loadingProgress,
+              ) {
+                if (loadingProgress == null) {
+                  return child;
+                }
 
-            return Container(
-              color:
-                  const Color(0xFFE6ECF4),
-              child: const Center(
-                child:
-                    CircularProgressIndicator(),
-              ),
-            );
-          },
+                return Container(
+                  color: const Color(0xFFE6ECF4),
+                  child: const Center(child: CircularProgressIndicator()),
+                );
+              },
 
           // 画像読み込み失敗
-          errorBuilder: (
-            BuildContext context,
-            Object error,
-            StackTrace? stackTrace,
-          ) {
-            debugPrint(
-              '画像読み込みエラー: $error',
-            );
+          errorBuilder:
+              (BuildContext context, Object error, StackTrace? stackTrace) {
+                debugPrint('画像読み込みエラー: $error');
 
-            return _buildImagePlaceholder();
-          },
+                return _buildImagePlaceholder();
+              },
         ),
       ),
     );
@@ -501,17 +400,11 @@ class _NewsHomePageState extends State<NewsHomePage> {
       height: 180,
       width: double.infinity,
       decoration: BoxDecoration(
-        color:
-            const Color(0xFFE6ECF4),
-        borderRadius:
-            BorderRadius.circular(17),
+        color: const Color(0xFFE6ECF4),
+        borderRadius: BorderRadius.circular(17),
       ),
       child: const Center(
-        child: Icon(
-          Icons.image_outlined,
-          size: 55,
-          color: Color(0xFF52657A),
-        ),
+        child: Icon(Icons.image_outlined, size: 55, color: Color(0xFF52657A)),
       ),
     );
   }
@@ -523,25 +416,16 @@ class _NewsHomePageState extends State<NewsHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          const Color(0xFFF8FAFD),
+      backgroundColor: const Color(0xFFF8FAFD),
 
-      bottomNavigationBar:
-          const _BottomNavigation(),
+      bottomNavigationBar: const _BottomNavigation(),
 
       body: SafeArea(
         child: SingleChildScrollView(
-          padding:
-              const EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            30,
-          ),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
 
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // =================================================
               // ヘッダー
@@ -554,96 +438,67 @@ class _NewsHomePageState extends State<NewsHomePage> {
                       'ニュースBeReal',
                       style: TextStyle(
                         fontSize: 27,
-                        fontWeight:
-                            FontWeight.w800,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: -1,
-                        color:
-                            Color(0xFF111827),
+                        color: Color(0xFF111827),
                       ),
                     ),
                   ),
 
                   IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons
-                          .person_add_alt_1_outlined,
-                      size: 27,
-                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AddFriendPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.person_add_alt_1_outlined, size: 27),
                   ),
 
                   IconButton(
                     onPressed: () {},
                     icon: const Icon(
-                      Icons
-                          .notifications_none_rounded,
+                      Icons.notifications_none_rounded,
                       size: 30,
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(
-                height: 25,
-              ),
+              const SizedBox(height: 25),
 
               // =================================================
               // 今日のニュース
               // =================================================
-
-              FutureBuilder<
-                  Map<String, dynamic>?>(
+              FutureBuilder<Map<String, dynamic>?>(
                 future: _newsFuture,
-                builder:
-                    (context, snapshot) {
+                builder: (context, snapshot) {
                   // ---------------------------------------------
                   // 読み込み中
                   // ---------------------------------------------
 
-                  if (snapshot
-                          .connectionState ==
-                      ConnectionState
-                          .waiting) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
                     return Container(
-                      width:
-                          double.infinity,
+                      width: double.infinity,
                       height: 350,
-                      decoration:
-                          BoxDecoration(
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          22,
-                        ),
-                        border:
-                            Border.all(
-                          color:
-                              const Color(
-                            0xFF9AAEC6,
-                          ),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: const Color(0xFF9AAEC6),
                           width: 1.5,
                         ),
                       ),
-                      child:
-                          const Center(
+                      child: const Center(
                         child: Column(
-                          mainAxisSize:
-                              MainAxisSize
-                                  .min,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             CircularProgressIndicator(),
-                            SizedBox(
-                              height: 16,
-                            ),
+                            SizedBox(height: 16),
                             Text(
                               'ニュースを取得しています...',
-                              style:
-                                  TextStyle(
-                                color: Color(
-                                  0xFF667085,
-                                ),
-                              ),
+                              style: TextStyle(color: Color(0xFF667085)),
                             ),
                           ],
                         ),
@@ -655,90 +510,56 @@ class _NewsHomePageState extends State<NewsHomePage> {
                   // エラー
                   // ---------------------------------------------
 
-                  if (snapshot
-                      .hasError) {
+                  if (snapshot.hasError) {
                     return Container(
-                      width:
-                          double.infinity,
-                      padding:
-                          const EdgeInsets
-                              .all(25),
-                      decoration:
-                          BoxDecoration(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(25),
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          22,
-                        ),
-                        border:
-                            Border.all(
-                          color: Colors
-                              .red
-                              .shade300,
-                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: Colors.red.shade300),
                       ),
                       child: Column(
                         children: [
                           const Icon(
-                            Icons
-                                .error_outline,
+                            Icons.error_outline,
                             size: 50,
-                            color:
-                                Colors.red,
+                            color: Colors.red,
                           ),
 
-                          const SizedBox(
-                            height: 15,
-                          ),
+                          const SizedBox(height: 15),
 
                           const Text(
                             'ニュースの取得に失敗しました',
-                            style:
-                                TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
-                              fontWeight:
-                                  FontWeight
-                                      .bold,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
 
-                          const SizedBox(
-                            height: 10,
-                          ),
+                          const SizedBox(height: 10),
 
                           Text(
                             '${snapshot.error}',
-                            textAlign:
-                                TextAlign
-                                    .center,
-                            style:
-                                const TextStyle(
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
                               fontSize: 13,
-                              color:
-                                  Colors.grey,
+                              color: Colors.grey,
                             ),
                           ),
 
-                          const SizedBox(
-                            height: 20,
-                          ),
+                          const SizedBox(height: 20),
 
                           FilledButton(
-                            onPressed:
-                                _reloadNews,
-                            child:
-                                const Text(
-                              'もう一度取得',
-                            ),
+                            onPressed: _reloadNews,
+                            child: const Text('もう一度取得'),
                           ),
                         ],
                       ),
                     );
                   }
 
-                  final news =
-                      snapshot.data;
+                  final news = snapshot.data;
 
                   // ---------------------------------------------
                   // ニュースなし
@@ -746,63 +567,36 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
                   if (news == null) {
                     return Container(
-                      width:
-                          double.infinity,
-                      padding:
-                          const EdgeInsets
-                              .all(30),
-                      decoration:
-                          BoxDecoration(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(30),
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          22,
-                        ),
-                        border:
-                            Border.all(
-                          color:
-                              const Color(
-                            0xFF9AAEC6,
-                          ),
-                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: const Color(0xFF9AAEC6)),
                       ),
                       child: Column(
                         children: [
                           const Icon(
-                            Icons
-                                .article_outlined,
+                            Icons.article_outlined,
                             size: 50,
-                            color:
-                                Colors.grey,
+                            color: Colors.grey,
                           ),
 
-                          const SizedBox(
-                            height: 15,
-                          ),
+                          const SizedBox(height: 15),
 
                           const Text(
                             'ニュースがありません',
-                            style:
-                                TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
-                              fontWeight:
-                                  FontWeight
-                                      .bold,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
 
-                          const SizedBox(
-                            height: 20,
-                          ),
+                          const SizedBox(height: 20),
 
                           FilledButton(
-                            onPressed:
-                                _reloadNews,
-                            child:
-                                const Text(
-                              '再読み込み',
-                            ),
+                            onPressed: _reloadNews,
+                            child: const Text('再読み込み'),
                           ),
                         ],
                       ),
@@ -813,65 +607,33 @@ class _NewsHomePageState extends State<NewsHomePage> {
                   // データ取得成功
                   // ---------------------------------------------
 
-                  final String title =
-                      news['title']
-                              ?.toString() ??
-                          'タイトルなし';
+                  final String title = news['title']?.toString() ?? 'タイトルなし';
 
-                  final String url =
-                      news['url']
-                              ?.toString() ??
-                          '';
+                  final String url = news['url']?.toString() ?? '';
 
-                  final String content =
-                      news['content']
-                              ?.toString() ??
-                          '';
+                  final String content = news['content']?.toString() ?? '';
 
-                  final String
-                      thumbnailUrl =
-                      news['thumbnail_url']
-                              ?.toString() ??
-                          '';
+                  final String thumbnailUrl =
+                      news['thumbnail_url']?.toString() ?? '';
 
-                  final String source =
-                      news['source']
-                              ?.toString() ??
-                          '';
+                  final String source = news['source']?.toString() ?? '';
 
-                  final String country =
-                      news['country']
-                              ?.toString() ??
-                          'ANY';
+                  final String country = news['country']?.toString() ?? 'ANY';
 
                   return Container(
-                    width:
-                        double.infinity,
-                    padding:
-                        const EdgeInsets
-                            .all(18),
-                    decoration:
-                        BoxDecoration(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius:
-                          BorderRadius
-                              .circular(
-                        22,
-                      ),
-                      border:
-                          Border.all(
-                        color:
-                            const Color(
-                          0xFF9AAEC6,
-                        ),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: const Color(0xFF9AAEC6),
                         width: 1.5,
                       ),
                     ),
 
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // ---------------------------------------
                         // 国・ニュース提供元
@@ -880,81 +642,49 @@ class _NewsHomePageState extends State<NewsHomePage> {
                         Row(
                           children: [
                             Text(
-                              _countryLabel(
-                                country,
-                              ),
-                              style:
-                                  const TextStyle(
+                              _countryLabel(country),
+                              style: const TextStyle(
                                 fontSize: 15,
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
 
-                            const SizedBox(
-                              width: 8,
-                            ),
+                            const SizedBox(width: 8),
 
                             Expanded(
                               child: Text(
-                                source
-                                        .isNotEmpty
-                                    ? source
-                                    : '今日のニュース',
-                                overflow:
-                                    TextOverflow
-                                        .ellipsis,
-                                style:
-                                    const TextStyle(
-                                  fontSize:
-                                      13,
-                                  color:
-                                      Color(
-                                    0xFF667085,
-                                  ),
+                                source.isNotEmpty ? source : '今日のニュース',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF667085),
                                 ),
                               ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(
-                          height: 16,
-                        ),
+                        const SizedBox(height: 16),
 
                         // ---------------------------------------
                         // 画像
                         // ---------------------------------------
+                        _buildNewsImage(thumbnailUrl),
 
-                        _buildNewsImage(
-                          thumbnailUrl,
-                        ),
-
-                        const SizedBox(
-                          height: 20,
-                        ),
+                        const SizedBox(height: 20),
 
                         // ---------------------------------------
                         // タイトル
                         // ---------------------------------------
-
                         Center(
                           child: Text(
                             title,
-                            textAlign:
-                                TextAlign
-                                    .center,
-                            style:
-                                const TextStyle(
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
                               fontSize: 21,
-                              fontWeight:
-                                  FontWeight
-                                      .w800,
+                              fontWeight: FontWeight.w800,
                               height: 1.4,
-                              color: Color(
-                                0xFF111827,
-                              ),
+                              color: Color(0xFF111827),
                             ),
                           ),
                         ),
@@ -962,80 +692,48 @@ class _NewsHomePageState extends State<NewsHomePage> {
                         // ---------------------------------------
                         // 本文
                         // ---------------------------------------
-
-                        if (content
-                            .isNotEmpty) ...[
-                          const SizedBox(
-                            height: 15,
-                          ),
+                        if (content.isNotEmpty) ...[
+                          const SizedBox(height: 15),
 
                           Text(
-                            content.length >
-                                    180
+                            content.length > 180
                                 ? '${content.substring(0, 180)}...'
                                 : content,
-                            style:
-                                const TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
                               height: 1.5,
-                              color: Color(
-                                0xFF667085,
-                              ),
+                              color: Color(0xFF667085),
                             ),
                           ),
                         ],
 
-                        const SizedBox(
-                          height: 20,
-                        ),
+                        const SizedBox(height: 20),
 
                         // ---------------------------------------
                         // 記事を読む
                         // ---------------------------------------
-
                         SizedBox(
-                          width:
-                              double.infinity,
+                          width: double.infinity,
                           height: 52,
-                          child:
-                              OutlinedButton(
+                          child: OutlinedButton(
                             onPressed: () {
-                              _openNewsUrl(
-                                url,
-                              );
+                              _openNewsUrl(url);
                             },
-                            style:
-                                OutlinedButton
-                                    .styleFrom(
-                              foregroundColor:
-                                  const Color(
-                                0xFF111827,
-                              ),
-                              side:
-                                  const BorderSide(
-                                color: Color(
-                                  0xFFC5D1DF,
-                                ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF111827),
+                              side: const BorderSide(
+                                color: Color(0xFFC5D1DF),
                                 width: 1.5,
                               ),
-                              shape:
-                                  RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                  12,
-                                ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child:
-                                const Text(
+                            child: const Text(
                               'タップして読む',
-                              style:
-                                  TextStyle(
+                              style: TextStyle(
                                 fontSize: 17,
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
@@ -1046,98 +744,61 @@ class _NewsHomePageState extends State<NewsHomePage> {
                 },
               ),
 
-              const SizedBox(
-                height: 28,
-              ),
+              const SizedBox(height: 28),
 
               // =================================================
               // フレンドのフィード
               // =================================================
-
               const Text(
                 'フレンドのフィード',
                 style: TextStyle(
                   fontSize: 22,
-                  fontWeight:
-                      FontWeight.w800,
-                  color:
-                      Color(0xFF111827),
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF111827),
                 ),
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
               const _FriendFeedCard(),
 
-              const SizedBox(
-                height: 18,
-              ),
+              const SizedBox(height: 18),
 
               // =================================================
               // ロック部分
               // =================================================
-
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets
-                        .symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 28,
                   vertical: 42,
                 ),
-                decoration:
-                    BoxDecoration(
-                  color: const Color(
-                    0xFF465A72,
-                  ),
-                  borderRadius:
-                      BorderRadius
-                          .circular(
-                    20,
-                  ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF465A72),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black
-                          .withValues(
-                        alpha: 0.12,
-                      ),
+                      color: Colors.black.withValues(alpha: 0.12),
                       blurRadius: 12,
-                      offset:
-                          const Offset(
-                        0,
-                        6,
-                      ),
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
-                child:
-                    const Column(
+                child: const Column(
                   children: [
-                    Icon(
-                      Icons.lock_outline,
-                      size: 42,
-                      color: Colors.black,
-                    ),
+                    Icon(Icons.lock_outline, size: 42, color: Colors.black),
 
-                    SizedBox(
-                      height: 22,
-                    ),
+                    SizedBox(height: 22),
 
                     Text(
                       '🔒 あなたが今日のニュースを読むと、\n'
                       '友達のニュースとリアクションが見られます',
-                      textAlign:
-                          TextAlign.center,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
                         height: 1.6,
-                        fontWeight:
-                            FontWeight
-                                .w700,
-                        color:
-                            Colors.black,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
                       ),
                     ),
                   ],
@@ -1155,152 +816,102 @@ class _NewsHomePageState extends State<NewsHomePage> {
 // フレンド投稿
 // ============================================================
 
-class _FriendFeedCard
-    extends StatelessWidget {
+class _FriendFeedCard extends StatelessWidget {
   const _FriendFeedCard();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(20),
-        border: Border.all(
-          color:
-              const Color(0xFFC5D1DF),
-          width: 1.3,
-        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFC5D1DF), width: 1.3),
       ),
       child: const Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               CircleAvatar(
                 radius: 26,
-                backgroundColor:
-                    Color(0xFFE5EDF7),
-                child: Icon(
-                  Icons.person,
-                  color:
-                      Color(0xFF8799AF),
-                ),
+                backgroundColor: Color(0xFFE5EDF7),
+                child: Icon(Icons.person, color: Color(0xFF8799AF)),
               ),
 
-              SizedBox(
-                width: 13,
-              ),
+              SizedBox(width: 13),
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'User 1',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight:
-                            FontWeight
-                                .w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
 
                     Text(
                       '2分前',
-                      style: TextStyle(
-                        color: Color(
-                          0xFF98A2B3,
-                        ),
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: Color(0xFF98A2B3), fontSize: 13),
                     ),
                   ],
                 ),
               ),
 
-              Text(
-                '🌐',
-                style: TextStyle(
-                  fontSize: 25,
-                ),
-              ),
+              Text('🌐', style: TextStyle(fontSize: 25)),
             ],
           ),
 
-          SizedBox(
-            height: 18,
-          ),
+          SizedBox(height: 18),
 
           Text(
             '友達がニュースを読みました。',
             style: TextStyle(
               fontSize: 16,
               height: 1.5,
-              fontWeight:
-                  FontWeight.w500,
+              fontWeight: FontWeight.w500,
             ),
           ),
 
-          SizedBox(
-            height: 18,
-          ),
+          SizedBox(height: 18),
 
           Row(
             children: [
               Icon(
-                Icons
-                    .thumb_up_alt_outlined,
+                Icons.thumb_up_alt_outlined,
                 size: 22,
-                color:
-                    Color(0xFF52657A),
+                color: Color(0xFF52657A),
               ),
 
-              SizedBox(
-                width: 6,
-              ),
+              SizedBox(width: 6),
 
               Text(
                 'いいね (2)',
                 style: TextStyle(
-                  color:
-                      Color(0xFF52657A),
-                  fontWeight:
-                      FontWeight.w600,
+                  color: Color(0xFF52657A),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
 
-              SizedBox(
-                width: 22,
-              ),
+              SizedBox(width: 22),
 
               Icon(
-                Icons
-                    .chat_bubble_outline,
+                Icons.chat_bubble_outline,
                 size: 21,
-                color:
-                    Color(0xFF52657A),
+                color: Color(0xFF52657A),
               ),
 
-              SizedBox(
-                width: 6,
-              ),
+              SizedBox(width: 6),
 
               Text(
                 'コメント (5)',
                 style: TextStyle(
-                  color:
-                      Color(0xFF52657A),
-                  fontWeight:
-                      FontWeight.w600,
+                  color: Color(0xFF52657A),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -1315,61 +926,41 @@ class _FriendFeedCard
 // 下部ナビゲーション
 // ============================================================
 
-class _BottomNavigation
-    extends StatelessWidget {
+class _BottomNavigation extends StatelessWidget {
   const _BottomNavigation();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Container(
-      decoration:
-          const BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(
-            color:
-                Color(0xFFD7DFE9),
-          ),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFFD7DFE9))),
       ),
-      child: const SafeArea(
+      child: SafeArea(
         top: false,
         child: Padding(
-          padding:
-              EdgeInsets.symmetric(
-            vertical: 9,
-          ),
+          padding: EdgeInsets.symmetric(vertical: 9),
           child: Row(
-            mainAxisAlignment:
-                MainAxisAlignment
-                    .spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _NavItem(
-                icon:
-                    Icons.home_outlined,
-                label: 'ホーム',
-                active: true,
-              ),
+              _NavItem(icon: Icons.home_outlined, label: 'ホーム', active: true),
+
+              _NavItem(icon: Icons.location_on_outlined, label: '地図'),
 
               _NavItem(
-                icon: Icons
-                    .location_on_outlined,
-                label: '地図',
-              ),
-
-              _NavItem(
-                icon:
-                    Icons.person_outline,
+                icon: Icons.person_outline,
                 label: 'マイページ',
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProfilePage(),
+                    ),
+                  );
+                },
               ),
 
-              _NavItem(
-                icon:
-                    Icons.settings_outlined,
-                label: '設定',
-              ),
+              _NavItem(icon: Icons.settings_outlined, label: '設定'),
             ],
           ),
         ),
@@ -1382,51 +973,42 @@ class _BottomNavigation
 // 下部ナビゲーション項目
 // ============================================================
 
-class _NavItem
-    extends StatelessWidget {
+class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
+  final VoidCallback? onTap;
 
   const _NavItem({
     required this.icon,
     required this.label,
     this.active = false,
+    this.onTap,
   });
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final color = active
-        ? const Color(0xFF111827)
-        : const Color(0xFF94A3B8);
+  Widget build(BuildContext context) {
+    final color = active ? const Color(0xFF111827) : const Color(0xFF94A3B8);
 
-    return Column(
-      mainAxisSize:
-          MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: color,
-          size: 27,
-        ),
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 27),
 
-        const SizedBox(
-          height: 4,
-        ),
+          const SizedBox(height: 4),
 
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: active
-                ? FontWeight.w700
-                : FontWeight.w500,
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

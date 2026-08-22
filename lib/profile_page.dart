@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'add_friend.dart';
 import 'news/news_home_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -81,8 +82,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         _userId = userId;
-        _username =
-            profile?['username']?.toString() ?? 'ユーザー名未設定';
+        _username = profile?['username']?.toString() ?? 'ユーザー名未設定';
 
         _isLoadingProfile = false;
       });
@@ -108,9 +108,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (index == 0) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const NewsHomePage(),
-        ),
+        MaterialPageRoute(builder: (context) => const NewsHomePage()),
       );
 
       return;
@@ -154,10 +152,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 12,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           children: [
             // ======================================================
             // ヘッダー
@@ -182,7 +177,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         Icons.person_add_outlined,
                         color: textColor,
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AddFriendPage(),
+                          ),
+                        );
+                      },
                     ),
 
                     IconButton(
@@ -202,17 +203,13 @@ class _ProfilePageState extends State<ProfilePage> {
             // ======================================================
             // プロフィールアイコン
             // ======================================================
-
             Center(
               child: Container(
                 width: 96,
                 height: 96,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 3,
-                  ),
+                  border: Border.all(color: Colors.white, width: 3),
                   image: const DecorationImage(
                     image: NetworkImage(
                       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
@@ -228,11 +225,8 @@ class _ProfilePageState extends State<ProfilePage> {
             // ======================================================
             // ユーザー情報
             // ======================================================
-
             if (_isLoadingProfile)
-              const Center(
-                child: CircularProgressIndicator(),
-              )
+              const Center(child: CircularProgressIndicator())
             else
               Container(
                 width: double.infinity,
@@ -270,17 +264,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
                     const SizedBox(height: 16),
 
-                    const Divider(
-                      height: 1,
-                      color: Color(0xFFE2E8F0),
-                    ),
+                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
                     const SizedBox(height: 16),
 
                     // ------------------------------------------------
                     // ユーザーID
                     // ------------------------------------------------
-
                     const Text(
                       'ユーザーID',
                       style: TextStyle(
@@ -294,10 +284,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                     SelectableText(
                       _userId,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: textColor,
-                      ),
+                      style: const TextStyle(fontSize: 13, color: textColor),
                     ),
                   ],
                 ),
@@ -305,17 +292,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 24),
 
-            const Divider(
-              color: Color(0xFFCBD5E1),
-              thickness: 1,
-            ),
+            const Divider(color: Color(0xFFCBD5E1), thickness: 1),
 
             const SizedBox(height: 14),
 
             // ======================================================
             // Pins
             // ======================================================
-
             const Text(
               '📌 Pins',
               style: TextStyle(
@@ -327,9 +310,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 12),
 
-            ..._pins.map(
-              (pin) => _buildPinCard(pin),
-            ),
+            ..._pins.map((pin) => _buildPinCard(pin)),
           ],
         ),
       ),
@@ -337,7 +318,6 @@ class _ProfilePageState extends State<ProfilePage> {
       // ============================================================
       // 下部ナビゲーション
       // ============================================================
-
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: backgroundColor,
@@ -354,10 +334,7 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icon(Icons.location_on_outlined),
             label: '地図',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'マイページ',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
             label: '設定',
@@ -371,13 +348,9 @@ class _ProfilePageState extends State<ProfilePage> {
   // Pinsカード
   // ============================================================
 
-  Widget _buildPinCard(
-    Map<String, String> pin,
-  ) {
+  Widget _buildPinCard(Map<String, String> pin) {
     return Container(
-      margin: const EdgeInsets.only(
-        bottom: 12,
-      ),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -394,11 +367,7 @@ class _ProfilePageState extends State<ProfilePage> {
               height: 72,
               fit: BoxFit.cover,
 
-              errorBuilder: (
-                context,
-                error,
-                stackTrace,
-              ) {
+              errorBuilder: (context, error, stackTrace) {
                 return Container(
                   width: 72,
                   height: 72,
@@ -416,8 +385,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   pin['title']!,
