@@ -20,7 +20,10 @@ class NewsHomePage extends StatefulWidget {
 }
 
 class _NewsHomePageState extends State<NewsHomePage> {
-  late Future<Map<String, dynamic>?> _newsFuture;
+  static Map<String, dynamic>? _activeNews;
+  static DateTime? _activeNewsSelectedAt;
+
+  Future<Map<String, dynamic>?>? _newsFuture;
 
   Timer? _newsRefreshTimer;
 
@@ -39,11 +42,33 @@ class _NewsHomePageState extends State<NewsHomePage> {
   void initState() {
     super.initState();
 
-    // 起動時に、
-    // 5分以内のニュースが保存されていれば再利用
-    // 5分以上経っていれば新しくランダム取得
-    _newsFuture = _loadNews();
+    _restoreActiveNews();
     _loadPinnedNews();
+  }
+
+  void _restoreActiveNews() {
+    final activeNews = _activeNews;
+    final selectedAt = _activeNewsSelectedAt;
+
+    if (activeNews == null || selectedAt == null) {
+      return;
+    }
+
+    if (DateTime.now().difference(selectedAt) >= _refreshInterval) {
+      _activeNews = null;
+      _activeNewsSelectedAt = null;
+      return;
+    }
+
+    _selectedAt = selectedAt;
+    _currentNewsUrl = activeNews['url']?.toString();
+    _newsFuture = Future.value(activeNews);
+    _scheduleNextRefresh();
+  }
+
+  void _saveActiveNews(Map<String, dynamic> news, DateTime selectedAt) {
+    _activeNews = Map<String, dynamic>.from(news);
+    _activeNewsSelectedAt = selectedAt;
   }
 
   Future<void> _loadPinnedNews() async {
@@ -113,6 +138,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
         // まだ5分経っていない
         if (elapsed < _refreshInterval) {
           _selectedAt = cachedTime;
+          _saveActiveNews(cachedNews, cachedTime);
 
           debugPrint('保存済みニュースを表示します');
 
@@ -224,6 +250,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
       final now = DateTime.now();
 
       _selectedAt = now;
+      _saveActiveNews(randomNews, now);
 
       // ========================================================
       // 端末にニュースを保存
@@ -247,7 +274,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
   }
 
   // ============================================================
-  // 次のニュース更新時刻を設定
+  // 次にニュースを取得できる時刻を設定
   // ============================================================
 
   void _scheduleNextRefresh() {
@@ -267,25 +294,26 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
     debugPrint('次のニュース更新まで ${remaining.inSeconds} 秒');
 
-    _newsRefreshTimer = Timer(remaining, () {
-      _refreshNews();
-    });
+    _newsRefreshTimer = Timer(remaining, _resetNews);
   }
 
   // ============================================================
-  // 5分経過時に新しいニュースを取得
+  // 5分経過時に取得ボタンを再表示
   // ============================================================
 
-  void _refreshNews() {
+  void _resetNews() {
     if (!mounted) {
       return;
     }
 
-    debugPrint('5分経過したためニュースを更新します');
+    debugPrint('5分経過したためニュース取得を再度受け付けます');
 
     setState(() {
-      _newsFuture = _getRandomNews();
+      _newsFuture = null;
     });
+
+    _activeNews = null;
+    _activeNewsSelectedAt = null;
   }
 
   // ============================================================
@@ -515,17 +543,208 @@ class _NewsHomePageState extends State<NewsHomePage> {
               // =================================================
               // 今日のニュース
               // =================================================
-              FutureBuilder<Map<String, dynamic>?>(
-                future: _newsFuture,
-                builder: (context, snapshot) {
-                  // ---------------------------------------------
-                  // 読み込み中
-                  // ---------------------------------------------
+              if (_newsFuture == null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: const Color(0xFF9AAEC6),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.newspaper_outlined,
+                        size: 54,
+                        color: Color(0xFF52657A),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '今日のニュースを取得します',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'ボタンを押すと、ニュースを表示します',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF667085),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        onPressed: _reloadNews,
+                        icon: const Icon(Icons.download_outlined),
+                        label: const Text('ニュースを取得する'),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                FutureBuilder<Map<String, dynamic>?>(
+                  future: _newsFuture,
+                  builder: (context, snapshot) {
+                    // ---------------------------------------------
+                    // 読み込み中
+                    // ---------------------------------------------
 
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Container(
+                        width: double.infinity,
+                        height: 350,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: const Color(0xFF9AAEC6),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Text(
+                                'ニュースを取得しています...',
+                                style: TextStyle(color: Color(0xFF667085)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    // ---------------------------------------------
+                    // エラー
+                    // ---------------------------------------------
+
+                    if (snapshot.hasError) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(25),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: Colors.red.shade300),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 50,
+                              color: Colors.red,
+                            ),
+
+                            const SizedBox(height: 15),
+
+                            const Text(
+                              'ニュースの取得に失敗しました',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            Text(
+                              '${snapshot.error}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            FilledButton(
+                              onPressed: _reloadNews,
+                              child: const Text('もう一度取得'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final news = snapshot.data;
+
+                    // ---------------------------------------------
+                    // ニュースなし
+                    // ---------------------------------------------
+
+                    if (news == null) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(30),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: const Color(0xFF9AAEC6)),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.article_outlined,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+
+                            const SizedBox(height: 15),
+
+                            const Text(
+                              'ニュースがありません',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            FilledButton(
+                              onPressed: _reloadNews,
+                              child: const Text('再読み込み'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    // ---------------------------------------------
+                    // データ取得成功
+                    // ---------------------------------------------
+
+                    final String title = news['title']?.toString() ?? 'タイトルなし';
+
+                    final String url = news['url']?.toString() ?? '';
+
+                    final String content = news['content']?.toString() ?? '';
+
+                    final String thumbnailUrl =
+                        news['thumbnail_url']?.toString() ?? '';
+
+                    final String source = news['source']?.toString() ?? '';
+
+                    final String country = news['country']?.toString() ?? 'ANY';
+
+                    final newsId = url.isNotEmpty ? url : title;
+                    final isPinned = _pinnedNewsIds.contains(newsId);
+
                     return Container(
                       width: double.infinity,
-                      height: 350,
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(22),
@@ -534,282 +753,138 @@ class _NewsHomePageState extends State<NewsHomePage> {
                           width: 1.5,
                         ),
                       ),
-                      child: const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 16),
-                            Text(
-                              'ニュースを取得しています...',
-                              style: TextStyle(color: Color(0xFF667085)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
 
-                  // ---------------------------------------------
-                  // エラー
-                  // ---------------------------------------------
-
-                  if (snapshot.hasError) {
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(25),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: Colors.red.shade300),
-                      ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 50,
-                            color: Colors.red,
+                          // ---------------------------------------
+                          // 国・ニュース提供元
+                          // ---------------------------------------
+
+                          Row(
+                            children: [
+                              Text(
+                                _countryLabel(country),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+
+                              const SizedBox(width: 8),
+
+                              Expanded(
+                                child: Text(
+                                  source.isNotEmpty ? source : '今日のニュース',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF667085),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
 
-                          const SizedBox(height: 15),
+                          const SizedBox(height: 16),
 
-                          const Text(
-                            'ニュースの取得に失敗しました',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          Text(
-                            '${snapshot.error}',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey,
-                            ),
-                          ),
+                          // ---------------------------------------
+                          // 画像
+                          // ---------------------------------------
+                          _buildNewsImage(thumbnailUrl),
 
                           const SizedBox(height: 20),
 
-                          FilledButton(
-                            onPressed: _reloadNews,
-                            child: const Text('もう一度取得'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final news = snapshot.data;
-
-                  // ---------------------------------------------
-                  // ニュースなし
-                  // ---------------------------------------------
-
-                  if (news == null) {
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(30),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: const Color(0xFF9AAEC6)),
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.article_outlined,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          const Text(
-                            'ニュースがありません',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          FilledButton(
-                            onPressed: _reloadNews,
-                            child: const Text('再読み込み'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  // ---------------------------------------------
-                  // データ取得成功
-                  // ---------------------------------------------
-
-                  final String title = news['title']?.toString() ?? 'タイトルなし';
-
-                  final String url = news['url']?.toString() ?? '';
-
-                  final String content = news['content']?.toString() ?? '';
-
-                  final String thumbnailUrl =
-                      news['thumbnail_url']?.toString() ?? '';
-
-                  final String source = news['source']?.toString() ?? '';
-
-                  final String country = news['country']?.toString() ?? 'ANY';
-
-                  final newsId = url.isNotEmpty ? url : title;
-                  final isPinned = _pinnedNewsIds.contains(newsId);
-
-                  return Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                        color: const Color(0xFF9AAEC6),
-                        width: 1.5,
-                      ),
-                    ),
-
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ---------------------------------------
-                        // 国・ニュース提供元
-                        // ---------------------------------------
-
-                        Row(
-                          children: [
-                            Text(
-                              _countryLabel(country),
+                          // ---------------------------------------
+                          // タイトル
+                          // ---------------------------------------
+                          Center(
+                            child: Text(
+                              title,
+                              textAlign: TextAlign.center,
                               style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 21,
+                                fontWeight: FontWeight.w800,
+                                height: 1.4,
+                                color: Color(0xFF111827),
                               ),
                             ),
+                          ),
 
-                            const SizedBox(width: 8),
+                          const SizedBox(height: 12),
 
-                            Expanded(
-                              child: Text(
-                                source.isNotEmpty ? source : '今日のニュース',
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF667085),
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextButton.icon(
+                              onPressed: () => _togglePinnedNews(
+                                title: title,
+                                url: url,
+                                thumbnailUrl: thumbnailUrl,
+                                source: source,
+                              ),
+                              icon: Icon(
+                                isPinned
+                                    ? Icons.push_pin
+                                    : Icons.push_pin_outlined,
+                              ),
+                              label: Text(isPinned ? 'ピン留め済み' : 'ピン留めする'),
+                            ),
+                          ),
+
+                          // ---------------------------------------
+                          // 本文
+                          // ---------------------------------------
+                          if (content.isNotEmpty) ...[
+                            const SizedBox(height: 15),
+
+                            Text(
+                              content.length > 180
+                                  ? '${content.substring(0, 180)}...'
+                                  : content,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                height: 1.5,
+                                color: Color(0xFF667085),
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 20),
+
+                          // ---------------------------------------
+                          // 記事を読む
+                          // ---------------------------------------
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                _openNewsUrl(url);
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF111827),
+                                side: const BorderSide(
+                                  color: Color(0xFFC5D1DF),
+                                  width: 1.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'タップして読む',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ---------------------------------------
-                        // 画像
-                        // ---------------------------------------
-                        _buildNewsImage(thumbnailUrl),
-
-                        const SizedBox(height: 20),
-
-                        // ---------------------------------------
-                        // タイトル
-                        // ---------------------------------------
-                        Center(
-                          child: Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.w800,
-                              height: 1.4,
-                              color: Color(0xFF111827),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        SizedBox(
-                          width: double.infinity,
-                          child: TextButton.icon(
-                            onPressed: () => _togglePinnedNews(
-                              title: title,
-                              url: url,
-                              thumbnailUrl: thumbnailUrl,
-                              source: source,
-                            ),
-                            icon: Icon(
-                              isPinned
-                                  ? Icons.push_pin
-                                  : Icons.push_pin_outlined,
-                            ),
-                            label: Text(isPinned ? 'ピン留め済み' : 'ピン留めする'),
-                          ),
-                        ),
-
-                        // ---------------------------------------
-                        // 本文
-                        // ---------------------------------------
-                        if (content.isNotEmpty) ...[
-                          const SizedBox(height: 15),
-
-                          Text(
-                            content.length > 180
-                                ? '${content.substring(0, 180)}...'
-                                : content,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              height: 1.5,
-                              color: Color(0xFF667085),
-                            ),
                           ),
                         ],
-
-                        const SizedBox(height: 20),
-
-                        // ---------------------------------------
-                        // 記事を読む
-                        // ---------------------------------------
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              _openNewsUrl(url);
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF111827),
-                              side: const BorderSide(
-                                color: Color(0xFFC5D1DF),
-                                width: 1.5,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'タップして読む',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      ),
+                    );
+                  },
+                ),
 
               const SizedBox(height: 28),
 
