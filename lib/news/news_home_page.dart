@@ -1,3 +1,4 @@
+import '../services/visited_countries_store.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -860,8 +861,11 @@ class _NewsHomePageState extends State<NewsHomePage> {
                             height: 52,
                             child: OutlinedButton(
                               onPressed: () {
-                                _openNewsUrl(url);
-                              },
+            // 実際に何の値が渡っているかターミナルに出力して確認
+            print('DEBUG: 渡された国名 -> $country'); 
+            VisitedCountriesStore.markAsVisited(country);
+            _openNewsUrl(url);
+          },
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: const Color(0xFF111827),
                                 side: const BorderSide(
