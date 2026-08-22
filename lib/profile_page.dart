@@ -433,7 +433,7 @@ class _ProfilePageState extends State<ProfilePage> {
   // ============================================================
 
 <<<<<<< HEAD
-  Widget _buildPinCard(
+  Widget Container Container _buildPinCard(
     Map<String, String> pin,
   ) {
     return Container(

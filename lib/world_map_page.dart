@@ -13,7 +13,7 @@ class _WorldMapPageState extends State<WorldMapPage> {
     'jp': const Color(0xFFFF9800), // 日本
     'us': const Color(0xFFFF9800), // アメリカ
   };
-  int _selectedIndex = 1;
+  final int _selectedIndex = 1;
   @override
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFFE4EBF5); // アプリ共通の背景色
