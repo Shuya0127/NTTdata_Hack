@@ -2,6 +2,8 @@ import os
 import requests
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials, messaging
 
 # 1. .envファイルから秘密情報を読み込む
 load_dotenv()
@@ -9,9 +11,38 @@ GUARDIAN_API_KEY = os.environ.get("GUARDIAN_API_KEY")
 NEWSAPI_KEY = os.environ.get("NEWSAPI_KEY")
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+FIREBASE_CREDENTIALS_PATH = os.environ.get(
+    "FIREBASE_CREDENTIALS_PATH", "firebase-service-account.json"
+)
 
 # 2. Supabaseに接続する
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# 3. Firebaseに接続する(通知送信用)
+firebase_admin.initialize_app(
+    credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+)
+
+# アプリ側でこのトピックを購読しているユーザー全員に通知が届く
+DAILY_NEWS_TOPIC = "daily_news"
+
+
+def send_daily_notification():
+    print("🔔 通知を送信中...")
+
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title="今日のニュース",
+            body="新しいニュースが届きました。開いて確認しよう！",
+        ),
+        topic=DAILY_NEWS_TOPIC,
+    )
+
+    try:
+        response = messaging.send(message)
+        print(f"✅ 通知の送信成功: {response}")
+    except Exception as e:
+        print(f"❌ 通知の送信エラー: {e}")
 
 # --------------------------------------------------
 # The Guardianから取得する関数
@@ -95,13 +126,18 @@ def get_newsapi_news(keyword="japan"):
 if __name__ == "__main__":
     # Guardianのニュース取得
     get_guardian_news()
-    
+
     print("-" * 40)
-    
+
     # 【修正】引数を keyword に変更します
     get_newsapi_news(keyword="japan")
-    
+
     # ちなみに、keyword="technology" や keyword="anime" などに変えれば、
     # 好きなジャンルのニュースを取ってくることもできます！
-    
+
+    print("-" * 40)
+
+    # 新しいニュースが届いたことをユーザーに通知
+    send_daily_notification()
+
     print("🎉 すべての処理が完了しました！")
