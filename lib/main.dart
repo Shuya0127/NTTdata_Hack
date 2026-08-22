@@ -15,7 +15,7 @@ class TodoApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
       ),
-      home: const TodoListScreen(),
+      home: const ToDoList(),
     );
   }
 }
