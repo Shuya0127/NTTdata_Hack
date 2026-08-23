@@ -507,8 +507,7 @@ class _InputField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.prefixIcon,
-    this.keyboardType,
-  });
+  }) : keyboardType = null;
 
   @override
   Widget build(BuildContext context) {
