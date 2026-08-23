@@ -89,149 +89,140 @@ class FriendListPage extends StatefulWidget {
 }
 
 class _FriendListPageState extends State<FriendListPage> {
-  int _selectedIndex = 2; // マイページまたは関連タブ
+  late Future<List<FriendSummary>> _friendsFuture;
 
-  // フレンド一覧のダミーデータ
-  final List<Map<String, String>> _friends = [
-    {
-      'name': '佐藤 花子',
-      'id': '@sato_hanako',
-      'imageUrl': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    },
-    {
-      'name': '鈴木 一郎',
-      'id': '@suzuki_ichiro',
-      'imageUrl': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    },
-    {
-      'name': '高橋 美咲',
-      'id': '@takahashi_misaki',
-      'imageUrl': 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
-    },
-    {
-      'name': '伊藤 健太',
-      'id': '@ito_kenta',
-      'imageUrl': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    },
-    {
-      'name': '渡辺 あおい',
-      'id': '@watanabe_aoi',
-      'imageUrl': 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-    },
-    {
-      'name': '山本 大輔',
-      'id': '@yamamoto_daisuke',
-      'imageUrl': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _friendsFuture = FriendRepository.loadFriends();
+  }
+
+  Future<void> _removeFriend(FriendSummary friend) async {
+    final shouldRemove = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('フレンドを削除しますか？'),
+        content: Text('@${friend.username}さんをフレンドから削除します。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('削除する'),
+          ),
+        ],
+      ),
+    );
+    if (shouldRemove != true) return;
+
+    try {
+      await FriendRepository.removeFriend(friend.relationshipId);
+      if (!mounted) return;
+      setState(() => _friendsFuture = FriendRepository.loadFriends());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('@${friend.username}さんをフレンドから削除しました')),
+      );
+    } catch (error) {
+      debugPrint('フレンド削除エラー: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('フレンドの削除に失敗しました')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    const backgroundColor = Color(0xFFE4EBF5); // 背景色
-    const textColor = Color(0xFF1E293B);       // テキスト色
-    const subTextColor = Color(0xFF94A3B8);    // 補足テキスト色
+    const backgroundColor = Color(0xFFE4EBF5);
+    const textColor = Color(0xFF334155);
+    const subTextColor = Color(0xFF94A3B8);
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ヘッダー（戻るボタン ＋ タイトル）
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: textColor),
-                    onPressed: () => Navigator.of(context).maybePop(),
-                  ),
-                  const Expanded(
-                    child: Center(
-                      child: Text(
-                        'フレンド一覧',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 48), // 左右中央揃え用の余白
-                ],
-              ),
-            ),
-
-            // フレンドカードリスト
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                itemCount: _friends.length,
-                itemBuilder: (context, index) {
-                  final friend = _friends[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(25),
-                        child: Image.network(
-                          friend['imageUrl']!,
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      title: Text(
-                        friend['name']!,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                      subtitle: Text(
-                        friend['id']!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: subTextColor,
-                        ),
-                      ),
-                      trailing: const Icon(Icons.chevron_right, color: subTextColor),
-                      onTap: () {
-                        // フレンド詳細などの遷移処理
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+      appBar: AppBar(
+        backgroundColor: backgroundColor,
+        surfaceTintColor: backgroundColor,
+        centerTitle: true,
+        title: const Text(
+          'フレンド一覧',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
         ),
       ),
-
-      // ボトムナビゲーションバー
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: backgroundColor,
-        selectedItemColor: textColor,
-        unselectedItemColor: subTextColor,
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+      body: FutureBuilder<List<FriendSummary>>(
+        future: _friendsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text('フレンド一覧の取得に失敗しました'));
+          }
+          final friends = snapshot.data ?? [];
+          if (friends.isEmpty) {
+            return const Center(child: Text('フレンドはまだいません'));
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(20),
+            itemCount: friends.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final friend = friends[index];
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    ProfileAvatar(radius: 24, imageUrl: friend.avatarUrl),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '@${friend.username}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            friend.userId,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: subTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.person_remove_outlined),
+                      tooltip: 'フレンドを削除',
+                      color: const Color(0xFFB91C1C),
+                      onPressed: () => _removeFriend(friend),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'ホーム'),
-          BottomNavigationBarItem(icon: Icon(Icons.location_on_outlined), label: '地図'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'マイページ'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '設定'),
-        ],
       ),
     );
   }
