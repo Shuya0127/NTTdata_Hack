@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'add_friend.dart';
+import 'notification_preferences.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -11,12 +12,27 @@ class NotificationPage extends StatefulWidget {
 }
 
 class _NotificationPageState extends State<NotificationPage> {
-  late Future<int> _pendingRequestsFuture;
+  late Future<_NotificationSettings> _settingsFuture;
 
   @override
   void initState() {
     super.initState();
-    _pendingRequestsFuture = _loadPendingRequestsCount();
+    _settingsFuture = _loadSettings();
+  }
+
+  Future<_NotificationSettings> _loadSettings() async {
+    final followRequestsEnabled =
+        await NotificationPreferences.followRequestsEnabled();
+    final newsUpdatesEnabled =
+        await NotificationPreferences.newsUpdatesEnabled();
+    final pendingRequests = followRequestsEnabled
+        ? await _loadPendingRequestsCount()
+        : 0;
+    return _NotificationSettings(
+      followRequestsEnabled: followRequestsEnabled,
+      newsUpdatesEnabled: newsUpdatesEnabled,
+      pendingRequests: pendingRequests,
+    );
   }
 
   Future<int> _loadPendingRequestsCount() async {
@@ -51,37 +67,53 @@ class _NotificationPageState extends State<NotificationPage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          FutureBuilder<int>(
-            future: _pendingRequestsFuture,
+          FutureBuilder<_NotificationSettings>(
+            future: _settingsFuture,
             builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
+              final settings = snapshot.data;
+              final count = settings?.pendingRequests ?? 0;
+              final followRequestsEnabled =
+                  settings?.followRequestsEnabled ?? true;
               return _NotificationTile(
                 icon: Icons.person_add_alt_1_outlined,
                 title: 'フレンド申請',
-                message: count == 0
+                message: !followRequestsEnabled
+                    ? 'フォロー申請通知はオフです'
+                    : count == 0
                     ? '受信したフレンド申請はありません'
                     : '$count件のフレンド申請があります',
                 highlighted: count > 0,
-                onTap: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const FriendRequestsPage(),
-                    ),
-                  );
-                  if (!mounted) return;
-                  setState(() {
-                    _pendingRequestsFuture = _loadPendingRequestsCount();
-                  });
-                },
+                onTap: followRequestsEnabled
+                    ? () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const FriendRequestsPage(),
+                          ),
+                        );
+                        if (!mounted) return;
+                        setState(() {
+                          _settingsFuture = _loadSettings();
+                        });
+                      }
+                    : null,
               );
             },
           ),
           const SizedBox(height: 12),
-          const _NotificationTile(
-            icon: Icons.newspaper_outlined,
-            title: 'ニュース更新',
-            message: '最新ニュースをホームで確認できます',
-            onTap: null,
+          FutureBuilder<_NotificationSettings>(
+            future: _settingsFuture,
+            builder: (context, snapshot) {
+              final newsUpdatesEnabled =
+                  snapshot.data?.newsUpdatesEnabled ?? true;
+              return _NotificationTile(
+                icon: Icons.newspaper_outlined,
+                title: 'ニュース更新',
+                message: newsUpdatesEnabled
+                    ? '最新ニュースをホームで確認できます'
+                    : 'ニュース更新通知はオフです',
+                onTap: null,
+              );
+            },
           ),
           const SizedBox(height: 28),
           const Center(
@@ -95,6 +127,18 @@ class _NotificationPageState extends State<NotificationPage> {
       ),
     );
   }
+}
+
+class _NotificationSettings {
+  const _NotificationSettings({
+    required this.followRequestsEnabled,
+    required this.newsUpdatesEnabled,
+    required this.pendingRequests,
+  });
+
+  final bool followRequestsEnabled;
+  final bool newsUpdatesEnabled;
+  final int pendingRequests;
 }
 
 class _NotificationTile extends StatelessWidget {

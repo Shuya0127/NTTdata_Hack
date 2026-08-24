@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VisitedCountriesStore {
@@ -35,6 +36,7 @@ class VisitedCountriesStore {
 
   // アプリ起動中の制覇済み国コードセット
   static final Set<String> _visitedCountryCodes = <String>{};
+  static const _storageKey = 'visited_country_codes';
 
   // 地図描画用（コード -> カラー）
   static Map<String, Color> get visitedCountriesMap {
@@ -45,17 +47,41 @@ class VisitedCountriesStore {
 
   static int get visitedCount => _visitedCountryCodes.length;
 
+  static Future<void> load() async {
+    final preferences = await SharedPreferences.getInstance();
+    _visitedCountryCodes.addAll(preferences.getStringList(_storageKey) ?? []);
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+      final rows = await Supabase.instance.client
+          .from('visited_countries')
+          .select('country_code')
+          .eq('user_id', user.id);
+      _visitedCountryCodes.addAll(
+        List<Map<String, dynamic>>.from(
+          rows,
+        ).map((row) => row['country_code'].toString().toLowerCase()),
+      );
+      await _saveLocal();
+    } catch (_) {
+      // SupabaseのテーブルやRLS設定が未準備でもローカル保存を使い続ける。
+    }
+  }
+
   /// 国名または国コードを受け取って制覇リストに追加する
   static Future<void> markAsVisited(String? countryNameOrCode) async {
     if (countryNameOrCode == null || countryNameOrCode.trim().isEmpty) return;
 
     final key = countryNameOrCode.trim().toUpperCase();
-    final code = _countryNameToCode[key] ?? countryNameOrCode.trim().toLowerCase();
+    final code =
+        _countryNameToCode[key] ?? countryNameOrCode.trim().toLowerCase();
 
     // すでに追加済みなら処理不要
     if (_visitedCountryCodes.contains(code)) return;
 
     _visitedCountryCodes.add(code);
+    await _saveLocal();
 
     // Supabase に安全に保存（テーブル未作成や未ログイン時でもエラーで落ちないように try-catch）
     try {
@@ -70,5 +96,10 @@ class VisitedCountriesStore {
     } catch (_) {
       // Supabase連携が準備中の場合はローカル保持のみ継続
     }
+  }
+
+  static Future<void> _saveLocal() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setStringList(_storageKey, _visitedCountryCodes.toList());
   }
 }

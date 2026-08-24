@@ -5,7 +5,7 @@ import 'add_friend.dart';
 import 'friend_list_page.dart';
 import 'news/news_home_page.dart';
 import 'news_history_page.dart';
-import 'notification_page.dart';
+import 'notification_bell.dart';
 import 'pinned_news_store.dart';
 import 'settings_page.dart';
 import 'world_map_page.dart';
@@ -191,19 +191,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       },
                     ),
 
-                    IconButton(
-                      icon: const Icon(
-                        Icons.notifications_none,
-                        color: textColor,
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const NotificationPage(),
-                          ),
-                        );
-                      },
-                    ),
+                    const NotificationBell(iconSize: 26),
                   ],
                 ),
               ],

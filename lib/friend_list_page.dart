@@ -119,18 +119,40 @@ class _FriendListPageState extends State<FriendListPage> {
 
     try {
       await FriendRepository.removeFriend(friend.relationshipId);
-      if (!mounted) return;
-      setState(() => _friendsFuture = FriendRepository.loadFriends());
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('@${friend.username}さんをフレンドから削除しました')),
-      );
+      _showRemovalSuccess(friend);
     } catch (error) {
       debugPrint('フレンド削除エラー: $error');
+      final wasRemoved = await _wasRelationshipRemoved(friend.relationshipId);
+      if (wasRemoved) {
+        _showRemovalSuccess(friend);
+        return;
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('フレンドの削除に失敗しました')));
     }
+  }
+
+  Future<bool> _wasRelationshipRemoved(String relationshipId) async {
+    try {
+      final relationship = await Supabase.instance.client
+          .from('friendships')
+          .select('id')
+          .eq('id', relationshipId)
+          .maybeSingle();
+      return relationship == null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _showRemovalSuccess(FriendSummary friend) {
+    if (!mounted) return;
+    setState(() => _friendsFuture = FriendRepository.loadFriends());
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('@${friend.username}さんをフレンドから削除しました')),
+    );
   }
 
   @override

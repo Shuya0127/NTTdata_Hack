@@ -11,7 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../add_friend.dart';
 import '../news_history_store.dart';
 import '../pinned_news_store.dart';
-import '../notification_page.dart';
+import '../notification_bell.dart';
 import '../profile_page.dart';
 import '../settings_page.dart';
 import '../world_map_page.dart';
@@ -536,19 +536,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
                     icon: const Icon(Icons.person_add_alt_1_outlined, size: 27),
                   ),
 
-                  IconButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const NotificationPage(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.notifications_none_rounded,
-                      size: 30,
-                    ),
-                  ),
+                  const NotificationBell(iconSize: 30),
                 ],
               ),
 

@@ -2,7 +2,7 @@ name: Get and save daily news
 
 on:
   schedule:
-    # 日本時間12:00に毎日実行（UTC 03:00）
+    # 毎日 日本時間12:00 に実行(GitHub Actionsのcronは協定世界時(UTC)基準のため、UTC 3:00 = JST 12:00)
     - cron: "0 3 * * *"
   workflow_dispatch: # GitHub画面から手動実行するためのボタン
 
