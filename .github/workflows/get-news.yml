@@ -1,0 +1,35 @@
+name: Get and save daily news
+
+on:
+  schedule:
+    # 1日中(0:00〜24:00)、5分おきに実行
+    - cron: "*/5 * * * *"
+  workflow_dispatch: # GitHub画面から手動実行するためのボタン
+
+jobs:
+  get-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: コードを取得
+        uses: actions/checkout@v4
+
+      - name: Pythonを準備
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: ライブラリを導入
+        run: pip install -r requirements.txt
+
+      - name: Firebaseの秘密鍵をファイルに書き出す
+        run: echo '${{ secrets.FIREBASE_CREDENTIALS_JSON }}' > firebase-service-account.json
+
+      - name: ニュースを取得して保存し、通知を送信
+        run: python get_news.py
+        env:
+          GUARDIAN_API_KEY: ${{ secrets.GUARDIAN_API_KEY }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          FIREBASE_CREDENTIALS_PATH: firebase-service-account.json

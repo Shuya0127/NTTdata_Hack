@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'testlogin/test_login_page.dart';
 
 class FriendSummary {
   const FriendSummary({
@@ -16,18 +17,23 @@ class FriendSummary {
 class FriendRepository {
   static Future<List<FriendSummary>> loadFriends() async {
     final client = Supabase.instance.client;
-    final currentUser = client.auth.currentUser;
-    if (currentUser == null) return [];
+    
+    // ニュース画面と同じように、まずは TestSession を確認する！
+    final currentUserId = TestSession.currentUserId ?? client.auth.currentUser?.id;
+    
+    if (currentUserId == null) return [];
 
+    // currentUser.id だった部分を currentUserId に書き換える
     final sentRelationships = await client
         .from('friendships')
         .select('id, receiver_id')
-        .eq('sender_id', currentUser.id)
+        .eq('sender_id', currentUserId) 
         .eq('status', 'accepted');
+        
     final receivedRelationships = await client
         .from('friendships')
         .select('id, sender_id')
-        .eq('receiver_id', currentUser.id)
+        .eq('receiver_id', currentUserId)
         .eq('status', 'accepted');
 
     final friendsById = <String, String>{};

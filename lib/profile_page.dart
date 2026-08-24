@@ -7,6 +7,7 @@ import 'news/news_home_page.dart';
 import 'pinned_news_store.dart';
 import 'settings_page.dart';
 import 'world_map_page.dart';
+import 'testlogin/test_login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -51,14 +52,14 @@ class _ProfilePageState extends State<ProfilePage> {
   // SupabaseからユーザーID・ユーザー名を取得
   // ============================================================
 
-  Future<void> _loadProfile() async {
+Future<void> _loadProfile() async {
     try {
       final supabase = Supabase.instance.client;
 
-      // 現在ログインしているユーザー
-      final user = supabase.auth.currentUser;
+      // ニュース画面と同じように、まずは TestSession を確認する！
+      final currentUserId = TestSession.currentUserId ?? supabase.auth.currentUser?.id;
 
-      if (user == null) {
+      if (currentUserId == null) {
         if (!mounted) return;
 
         setState(() {
@@ -70,22 +71,18 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
-      // Supabase AuthのユーザーID
-      final userId = user.id;
-
-      // profilesテーブルからusernameを取得
+      // profilesテーブルからusernameを取得（currentUserIdを使う）
       final profile = await supabase
           .from('profiles')
           .select('username')
-          .eq('id', userId)
+          .eq('id', currentUserId)
           .maybeSingle();
 
       if (!mounted) return;
 
       setState(() {
-        _userId = userId;
+        _userId = currentUserId;
         _username = profile?['username']?.toString() ?? 'ユーザー名未設定';
-
         _isLoadingProfile = false;
       });
     } catch (e) {
