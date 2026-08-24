@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'account/account_creation_page.dart';
-import 'services/notification_service.dart';
+//import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +15,7 @@ void main() async {
 
   // Firebase / 通知の初期化
   await Firebase.initializeApp();
-  await NotificationService.initialize();
+  //await NotificationService.initialize();
 
   runApp(const MyApp());
 }
