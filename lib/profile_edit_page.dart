@@ -12,22 +12,23 @@ class ProfileEditPage extends StatefulWidget {
 class _ProfileEditPageState extends State<ProfileEditPage> {
   final ImagePicker _imagePicker = ImagePicker();
   String? _avatarUrl;
+  String? _username;
   bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentAvatar();
+    _loadCurrentProfile();
   }
 
-  Future<void> _loadCurrentAvatar() async {
+  Future<void> _loadCurrentProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
     try {
       final profile = await Supabase.instance.client
           .from('profiles')
-          .select('avatar_url')
+          .select('avatar_url, username')
           .eq('id', user.id)
           .maybeSingle();
 
@@ -35,9 +36,111 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
       setState(() {
         _avatarUrl = profile?['avatar_url']?.toString();
+        _username = profile?['username']?.toString();
       });
     } catch (e) {
-      debugPrint('プロフィール画像取得エラー: $e');
+      debugPrint('プロフィール情報取得エラー: $e');
+    }
+  }
+
+  Future<void> _showUsernameEditDialog() async {
+    final currentName = _username ?? '';
+    final controller = TextEditingController(text: currentName);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('ユーザー名変更'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 30,
+            decoration: const InputDecoration(
+              hintText: '新しいユーザー名を入力',
+            ),
+            onSubmitted: (value) {
+              final trimmed = value.trim();
+              if (trimmed.isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('ユーザー名を入力してください')),
+                );
+                return;
+              }
+              Navigator.of(dialogContext).pop(trimmed);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('キャンセル'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final trimmed = controller.text.trim();
+                if (trimmed.isEmpty) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('ユーザー名を入力してください')),
+                  );
+                  return;
+                }
+                Navigator.of(dialogContext).pop(trimmed);
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == null) return;
+    await _updateUsername(result);
+  }
+
+  Future<void> _updateUsername(String newUsername) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    final trimmed = newUsername.trim();
+
+    if (user == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ログイン状態を確認できませんでした')),
+      );
+      return;
+    }
+
+    if (trimmed.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ユーザー名を入力してください')),
+      );
+      return;
+    }
+
+    try {
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'username': trimmed})
+          .eq('id', user.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _username = trimmed;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ユーザー名を更新しました')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ユーザー名更新に失敗しました: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -204,7 +307,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 _EditOption(
                   icon: Icons.person_outline,
                   title: 'ユーザー名変更',
-                  onTap: () {},
+                  onTap: _showUsernameEditDialog,
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 _EditOption(
