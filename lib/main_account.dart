@@ -1,8 +1,6 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'account/account_creation_page.dart';
-import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,9 +10,6 @@ void main() async {
     url: 'https://wpifjbdmfzzbuqhcwitn.supabase.co', // あなたのURL
     anonKey: 'sb_publishable_a95qobQRyKDpMDK0vKWQzw_QdLyvk6z', // あなたのキー
   );
-
-  await Firebase.initializeApp();
-  await NotificationService.initialize();
 
   runApp(const AccountApp());
 }

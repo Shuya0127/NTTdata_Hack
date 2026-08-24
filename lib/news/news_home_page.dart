@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../add_friend.dart';
+import '../news_history_store.dart';
 import '../pinned_news_store.dart';
 import '../notification_page.dart';
 import '../profile_page.dart';
@@ -29,9 +30,6 @@ class _NewsHomePageState extends State<NewsHomePage> {
   Future<Map<String, dynamic>?>? _newsFuture;
 
   Timer? _newsRefreshTimer;
-
-  // ニュースを切り替える間隔
-  static const Duration _refreshInterval = Duration(minutes: 5);
 
   // SharedPreferencesに保存するときの名前
   static const String _cachedNewsKey = 'cached_news';
@@ -57,7 +55,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
       return;
     }
 
-    if (DateTime.now().difference(selectedAt) >= _refreshInterval) {
+    if (!DateTime.now().isBefore(_nextRefreshAt(selectedAt))) {
       _activeNews = null;
       _activeNewsSelectedAt = null;
       return;
@@ -134,18 +132,16 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
         final cachedNews = Map<String, dynamic>.from(decoded as Map);
 
-        final elapsed = DateTime.now().difference(cachedTime);
-
         _currentNewsUrl = cachedNews['url']?.toString();
 
-        // まだ5分経っていない
-        if (elapsed < _refreshInterval) {
+        // 次の日本時間12:00までは同じニュースを表示する。
+        if (DateTime.now().isBefore(_nextRefreshAt(cachedTime))) {
           _selectedAt = cachedTime;
           _saveActiveNews(cachedNews, cachedTime);
 
           debugPrint('保存済みニュースを表示します');
 
-          debugPrint('経過時間: ${elapsed.inSeconds}秒');
+          debugPrint('次回更新時刻: ${_nextRefreshAt(cachedTime)}');
 
           _scheduleNextRefresh();
 
@@ -264,6 +260,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
       await prefs.setString(_cachedNewsKey, jsonEncode(randomNews));
 
       await prefs.setString(_cachedNewsTimeKey, now.toIso8601String());
+      await NewsHistoryStore.saveFromNews(randomNews, now);
 
       // 5分後に次の記事へ変更
       _scheduleNextRefresh();
@@ -284,13 +281,9 @@ class _NewsHomePageState extends State<NewsHomePage> {
     // 既存Timerがあれば停止
     _newsRefreshTimer?.cancel();
 
-    final selectedAt = _selectedAt ?? DateTime.now();
+    final nextRefreshAt = _nextRefreshAt(_selectedAt ?? DateTime.now());
+    var remaining = nextRefreshAt.difference(DateTime.now());
 
-    final elapsed = DateTime.now().difference(selectedAt);
-
-    var remaining = _refreshInterval - elapsed;
-
-    // すでに5分経っている場合
     if (remaining.isNegative) {
       remaining = Duration.zero;
     }
@@ -301,7 +294,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
   }
 
   // ============================================================
-  // 5分経過時に取得ボタンを再表示
+  // 毎日12:00に取得ボタンを再表示
   // ============================================================
 
   void _resetNews() {
@@ -309,7 +302,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
       return;
     }
 
-    debugPrint('5分経過したためニュース取得を再度受け付けます');
+    debugPrint('12:00になったためニュース取得を再度受け付けます');
 
     setState(() {
       _newsFuture = null;
@@ -317,6 +310,18 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
     _activeNews = null;
     _activeNewsSelectedAt = null;
+  }
+
+  DateTime _nextRefreshAt(DateTime selectedAt) {
+    final todayNoon = DateTime(
+      selectedAt.year,
+      selectedAt.month,
+      selectedAt.day,
+      12,
+    );
+    return selectedAt.isBefore(todayNoon)
+        ? todayNoon
+        : todayNoon.add(const Duration(days: 1));
   }
 
   // ============================================================
