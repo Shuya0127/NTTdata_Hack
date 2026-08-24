@@ -1,7 +1,117 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ProfileEditPage extends StatelessWidget {
+class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
+
+  @override
+  State<ProfileEditPage> createState() => _ProfileEditPageState();
+}
+
+class _ProfileEditPageState extends State<ProfileEditPage> {
+  final ImagePicker _imagePicker = ImagePicker();
+  String? _avatarUrl;
+  bool _isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentAvatar();
+  }
+
+  Future<void> _loadCurrentAvatar() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      setState(() {
+        _avatarUrl = profile?['avatar_url']?.toString();
+      });
+    } catch (e) {
+      debugPrint('プロフィール画像取得エラー: $e');
+    }
+  }
+
+  Future<void> _updateProfileAvatar() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ログイン状態を確認できませんでした')),
+        );
+      }
+      return;
+    }
+
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 800,
+      );
+      if (image == null) return;
+
+      final imageBytes = await image.readAsBytes();
+      if (!mounted) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      const bucket = 'profile-images';
+      final fileName = 'avatar_${user.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storage = Supabase.instance.client.storage.from(bucket);
+
+      await storage.uploadBinary(
+        fileName,
+        imageBytes,
+        fileOptions: const FileOptions(
+          contentType: 'image/jpeg',
+          upsert: true,
+        ),
+      );
+
+      final publicUrl = storage.getPublicUrl(fileName);
+
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'avatar_url': publicUrl})
+          .eq('id', user.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _avatarUrl = publicUrl;
+        _isUploading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('アイコンを更新しました')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isUploading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('アイコン更新に失敗しました: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +136,49 @@ class ProfileEditPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Center(
-            child: CircleAvatar(
-              radius: 46,
-              backgroundColor: Color(0xFFE2E8F0),
-              child: Icon(Icons.person, size: 52, color: Color(0xFF64748B)),
+          Center(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 46,
+                  backgroundColor: const Color(0xFFE2E8F0),
+                  child: ClipOval(
+                    child: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                        ? Image.network(
+                            _avatarUrl!,
+                            width: 92,
+                            height: 92,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const SizedBox(
+                              width: 92,
+                              height: 92,
+                              child: Icon(
+                                Icons.person,
+                                size: 52,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.person,
+                            size: 52,
+                            color: Color(0xFF64748B),
+                          ),
+                  ),
+                ),
+                if (_isUploading)
+                  const Positioned.fill(
+                    child: CircleAvatar(
+                      radius: 46,
+                      backgroundColor: Color(0x66000000),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -50,7 +198,7 @@ class ProfileEditPage extends StatelessWidget {
                 _EditOption(
                   icon: Icons.add_a_photo_outlined,
                   title: 'アイコン画像変更',
-                  onTap: () {},
+                  onTap: _isUploading ? null : _updateProfileAvatar,
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 _EditOption(
@@ -88,7 +236,7 @@ class _EditOption extends StatelessWidget {
 
   final IconData icon;
   final String title;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
