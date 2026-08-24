@@ -1,3 +1,4 @@
+import 'services/visited_countries_store.dart';
 import 'package:countries_world_map/countries_world_map.dart';
 import 'package:countries_world_map/data/maps/world_map.dart';
 import 'package:flutter/material.dart';
@@ -14,10 +15,7 @@ class WorldMapPage extends StatefulWidget {
 }
 
 class _WorldMapPageState extends State<WorldMapPage> {
-  final Map<String, Color> _visitedCountries = {
-    'jp': const Color(0xFFFF9800),
-    'us': const Color(0xFFFF9800),
-  };
+  Map<String, Color> get _visitedCountries => VisitedCountriesStore.visitedCountriesMap;
   int _selectedIndex = 1;
 
   void _onNavigationTapped(int index) {
