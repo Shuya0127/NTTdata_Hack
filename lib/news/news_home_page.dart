@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../add_friend.dart';
 import '../pinned_news_store.dart';
+import '../notification_page.dart';
 import '../profile_page.dart';
 import '../settings_page.dart';
 import '../world_map_page.dart';
@@ -531,7 +532,13 @@ class _NewsHomePageState extends State<NewsHomePage> {
                   ),
 
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationPage(),
+                        ),
+                      );
+                    },
                     icon: const Icon(
                       Icons.notifications_none_rounded,
                       size: 30,
@@ -861,11 +868,11 @@ class _NewsHomePageState extends State<NewsHomePage> {
                             height: 52,
                             child: OutlinedButton(
                               onPressed: () {
-            // 実際に何の値が渡っているかターミナルに出力して確認
-            print('DEBUG: 渡された国名 -> $country'); 
-            VisitedCountriesStore.markAsVisited(country);
-            _openNewsUrl(url);
-          },
+                                // 実際に何の値が渡っているかターミナルに出力して確認
+                                print('DEBUG: 渡された国名 -> $country');
+                                VisitedCountriesStore.markAsVisited(country);
+                                _openNewsUrl(url);
+                              },
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: const Color(0xFF111827),
                                 side: const BorderSide(

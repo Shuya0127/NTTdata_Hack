@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'add_friend.dart';
 import 'friend_list_page.dart';
 import 'news/news_home_page.dart';
+import 'notification_page.dart';
 import 'pinned_news_store.dart';
 import 'settings_page.dart';
 import 'world_map_page.dart';
@@ -194,7 +195,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         Icons.notifications_none,
                         color: textColor,
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationPage(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -490,11 +497,8 @@ class _ProfilePageState extends State<ProfilePage> {
           : Image.network(
               avatarUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const Icon(
-                Icons.person,
-                size: 48,
-                color: Color(0xFF94A3B8),
-              ),
+              errorBuilder: (_, _, _) =>
+                  const Icon(Icons.person, size: 48, color: Color(0xFF94A3B8)),
             ),
     );
   }
