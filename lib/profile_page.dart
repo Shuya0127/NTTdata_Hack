@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'add_friend.dart';
 import 'friend_list_page.dart';
 import 'news/news_home_page.dart';
+import 'news_history_page.dart';
+import 'notification_page.dart';
 import 'pinned_news_store.dart';
 import 'settings_page.dart';
 import 'world_map_page.dart';
@@ -194,7 +196,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         Icons.notifications_none,
                         color: textColor,
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationPage(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -322,6 +330,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 24),
 
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NewsHistoryPage()),
+                ),
+                icon: const Icon(Icons.history),
+                label: const Text('過去のニュースを見る'),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
             const Divider(color: Color(0xFFCBD5E1), thickness: 1),
 
             const SizedBox(height: 14),
@@ -404,6 +425,36 @@ class _ProfilePageState extends State<ProfilePage> {
   // Pinsカード
   // ============================================================
 
+  Future<void> _unpinNews(PinnedNews pin) async {
+    final shouldUnpin = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ピン留めを解除しますか？'),
+        content: Text('「${pin.title}」をマイページから外します。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('解除する'),
+          ),
+        ],
+      ),
+    );
+    if (shouldUnpin != true) return;
+
+    await PinnedNewsStore.toggle(pin);
+    if (!mounted) return;
+    setState(() {
+      _pinnedNewsFuture = PinnedNewsStore.load();
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('ピン留めを解除しました')));
+  }
+
   Widget _buildPinCard(PinnedNews pin) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -468,6 +519,12 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded),
+            tooltip: 'ピン留めを解除',
+            color: const Color(0xFF64748B),
+            onPressed: () => _unpinNews(pin),
+          ),
         ],
       ),
     );
@@ -490,11 +547,8 @@ class _ProfilePageState extends State<ProfilePage> {
           : Image.network(
               avatarUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const Icon(
-                Icons.person,
-                size: 48,
-                color: Color(0xFF94A3B8),
-              ),
+              errorBuilder: (_, _, _) =>
+                  const Icon(Icons.person, size: 48, color: Color(0xFF94A3B8)),
             ),
     );
   }
