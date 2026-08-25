@@ -13,6 +13,7 @@ import '../news_history_store.dart';
 import '../pinned_news_store.dart';
 import '../notification_bell.dart';
 import '../profile_page.dart';
+import '../profile_avatar.dart';
 import '../settings_page.dart';
 import '../testlogin/test_login_page.dart';
 import '../world_map_page.dart';
@@ -24,6 +25,21 @@ DateTime _currentNewsDayStart([DateTime? dateTime]) {
   return now.isBefore(todayNoon)
       ? todayNoon.subtract(const Duration(days: 1))
       : todayNoon;
+}
+
+String _friendCountryLabel(String country) {
+  switch (country.toUpperCase()) {
+    case 'GB':
+      return '🇬🇧 UK';
+    case 'JP':
+      return '🇯🇵 JAPAN';
+    case 'US':
+      return '🇺🇸 USA';
+    case 'AU':
+      return '🇦🇺 AUSTRALIA';
+    default:
+      return '🌍 WORLD';
+  }
 }
 
 class NewsHomePage extends StatefulWidget {
@@ -1092,15 +1108,16 @@ class _FriendFeedSectionState extends State<_FriendFeedSection> {
         // プロフィール取得
         final profile = await client
             .from('profiles')
-            .select('username')
+            .select('username, avatar_url')
             .eq('id', friendId)
             .maybeSingle();
         final username = profile?['username']?.toString() ?? 'ユーザー';
+        final avatarUrl = profile?['avatar_url']?.toString();
 
         // ニュース詳細取得（newsテーブルから引く）
         final newsList = await client
             .from('news')
-            .select('title, thumbnail_url, source')
+            .select('title, thumbnail_url, source, country')
             .eq('url', newsUrl)
             .limit(1);
 
@@ -1113,6 +1130,9 @@ class _FriendFeedSectionState extends State<_FriendFeedSection> {
         final newsSource = (newsList.isNotEmpty)
             ? newsList[0]['source']?.toString() ?? 'ニュースサイト'
             : 'ニュースサイト';
+        final newsCountry = (newsList.isNotEmpty)
+            ? newsList[0]['country']?.toString() ?? 'ANY'
+            : 'ANY';
 
         // いいねとコメント
         final likes = await client
@@ -1131,10 +1151,12 @@ class _FriendFeedSectionState extends State<_FriendFeedSection> {
           'history_id': historyId,
           'friend_id': friendId,
           'username': username,
+          'avatar_url': avatarUrl,
           'news_url': newsUrl,
           'news_title': newsTitle,
           'news_thumbnail': newsThumbnail,
           'news_source': newsSource,
+          'news_country': newsCountry,
           'created_at': item['created_at'],
           'like_count': likes.length,
           'is_liked_by_me': isLikedByMe,
@@ -1267,9 +1289,11 @@ class _FriendFeedCardState extends State<_FriendFeedCard> {
     final likeCount = widget.item['like_count'] as int;
     final commentCount = widget.item['comment_count'] as int;
     final username = widget.item['username'] as String;
+    final avatarUrl = widget.item['avatar_url']?.toString();
     final newsTitle = widget.item['news_title'] as String;
     final newsThumbnail = widget.item['news_thumbnail'] as String;
     final newsSource = widget.item['news_source'] as String;
+    final newsCountry = widget.item['news_country'] as String;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1285,11 +1309,7 @@ class _FriendFeedCardState extends State<_FriendFeedCard> {
         children: [
           Row(
             children: [
-              const CircleAvatar(
-                radius: 20,
-                backgroundColor: Color(0xFFE5EDF7),
-                child: Icon(Icons.person, color: Color(0xFF8799AF)),
-              ),
+              ProfileAvatar(radius: 20, imageUrl: avatarUrl),
               const SizedBox(width: 13),
               Expanded(
                 child: Text(
@@ -1298,6 +1318,14 @@ class _FriendFeedCardState extends State<_FriendFeedCard> {
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
+                ),
+              ),
+              Text(
+                _friendCountryLabel(newsCountry),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF52657A),
                 ),
               ),
             ],
