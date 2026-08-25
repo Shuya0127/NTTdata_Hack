@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'settings_page.dart';
+import 'testlogin/test_login_page.dart';
 import 'world_map_page.dart';
 import 'profile_avatar.dart';
 
@@ -49,9 +50,10 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
 
   Future<void> _loadRequests() async {
     final client = Supabase.instance.client;
-    final currentUser = client.auth.currentUser;
+    final currentUserId =
+        TestSession.currentUserId ?? client.auth.currentUser?.id;
 
-    if (currentUser == null) {
+    if (currentUserId == null) {
       setState(() {
         _isLoading = false;
         _loadError = 'ログインするとフレンド申請を確認できます';
@@ -63,7 +65,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
       final requests = await client
           .from('friendships')
           .select('id, sender_id')
-          .eq('receiver_id', currentUser.id)
+          .eq('receiver_id', currentUserId)
           .eq('status', 'pending');
       final requestRows = List<Map<String, dynamic>>.from(requests);
 
@@ -357,9 +359,11 @@ class _AddFriendPageState extends State<AddFriendPage> {
 
   Future<void> _sendFriendRequest() async {
     final profile = _searchResult;
-    final currentUser = Supabase.instance.client.auth.currentUser;
+    final currentUserId =
+        TestSession.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
 
-    if (profile == null || currentUser == null) {
+    if (profile == null || currentUserId == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('ログインしてからフレンド申請を送信してください')));
@@ -367,7 +371,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
     }
 
     final receiverId = profile['id'].toString();
-    if (receiverId == currentUser.id) {
+    if (receiverId == currentUserId) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('自分自身にはフレンド申請を送信できません')));
@@ -376,7 +380,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
 
     try {
       await Supabase.instance.client.from('friendships').insert({
-        'sender_id': currentUser.id,
+        'sender_id': currentUserId,
         'receiver_id': receiverId,
         'status': 'pending',
       });

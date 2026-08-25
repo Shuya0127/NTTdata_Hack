@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 APIはセキュリティの観点からGitHubに入れたときに見られないようにしなければならない．
 そこでAPIなどをメモしたファイル「.env」を別に作成し，ここで参照するようにしている．
 「.gitignore」に「.env」を記載したので，gitHubに「.env」が入れられることはない．
-「」
 """
 load_dotenv()
 GUARDIAN_API_KEY = os.environ.get("GUARDIAN_API_KEY")

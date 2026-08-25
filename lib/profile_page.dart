@@ -8,6 +8,7 @@ import 'news_history_page.dart';
 import 'notification_bell.dart';
 import 'pinned_news_store.dart';
 import 'settings_page.dart';
+import 'testlogin/test_login_page.dart';
 import 'world_map_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -58,10 +59,10 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final supabase = Supabase.instance.client;
 
-      // 現在ログインしているユーザー
-      final user = supabase.auth.currentUser;
+      final currentUserId =
+          TestSession.currentUserId ?? supabase.auth.currentUser?.id;
 
-      if (user == null) {
+      if (currentUserId == null) {
         if (!mounted) return;
 
         setState(() {
@@ -77,13 +78,13 @@ class _ProfilePageState extends State<ProfilePage> {
       final profile = await supabase
           .from('profiles')
           .select('username, user_id, avatar_url')
-          .eq('id', user.id)
+          .eq('id', currentUserId)
           .maybeSingle();
 
       if (!mounted) return;
 
       setState(() {
-        _userId = profile?['user_id']?.toString() ?? user.id;
+        _userId = profile?['user_id']?.toString() ?? currentUserId;
         _username = profile?['username']?.toString() ?? 'ユーザー名未設定';
         _avatarUrl = profile?['avatar_url']?.toString();
 
