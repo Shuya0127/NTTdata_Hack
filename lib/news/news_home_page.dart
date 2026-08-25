@@ -17,6 +17,15 @@ import '../settings_page.dart';
 import '../testlogin/test_login_page.dart';
 import '../world_map_page.dart';
 
+/// ニュースの1日は日本時間の正午から翌日の正午までとする。
+DateTime _currentNewsDayStart([DateTime? dateTime]) {
+  final now = dateTime ?? DateTime.now();
+  final todayNoon = DateTime(now.year, now.month, now.day, 12);
+  return now.isBefore(todayNoon)
+      ? todayNoon.subtract(const Duration(days: 1))
+      : todayNoon;
+}
+
 class NewsHomePage extends StatefulWidget {
   const NewsHomePage({super.key});
 
@@ -40,6 +49,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
   String? _currentNewsUrl;
   Set<String> _pinnedNewsIds = {};
   bool _hasReadNewsToday = false;
+  int _feedRefreshVersion = 0;
 
   @override
   void initState() {
@@ -66,11 +76,11 @@ class _NewsHomePageState extends State<NewsHomePage> {
       final lastReadAt = rows.isEmpty
           ? null
           : DateTime.tryParse(rows.first['created_at'].toString())?.toLocal();
+      final newsDayStart = _currentNewsDayStart();
       if (!mounted) return;
       setState(() {
         _hasReadNewsToday =
-            lastReadAt != null &&
-            DateTime.now().difference(lastReadAt).inHours < 24;
+            lastReadAt != null && !lastReadAt.isBefore(newsDayStart);
       });
     } catch (error) {
       debugPrint('既読チェックエラー: $error');
@@ -278,6 +288,9 @@ class _NewsHomePageState extends State<NewsHomePage> {
             'news_url': randomNews['url']?.toString() ?? '',
           });
           await _checkIfUserReadNewsToday();
+          if (mounted) {
+            setState(() => _feedRefreshVersion++);
+          }
         } catch (error) {
           debugPrint('閲覧履歴の保存エラー: $error');
         }
@@ -355,6 +368,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
 
     _activeNews = null;
     _activeNewsSelectedAt = null;
+    _checkIfUserReadNewsToday();
   }
 
   DateTime _nextRefreshAt(DateTime selectedAt) {
@@ -959,7 +973,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const _FriendFeedSection(),
+                _FriendFeedSection(key: ValueKey(_feedRefreshVersion)),
                 const SizedBox(height: 18),
               ] else ...[
                 Container(
@@ -1004,7 +1018,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
 // ============================================================
 
 class _FriendFeedSection extends StatefulWidget {
-  const _FriendFeedSection();
+  const _FriendFeedSection({super.key});
 
   @override
   State<_FriendFeedSection> createState() => _FriendFeedSectionState();
@@ -1059,16 +1073,13 @@ class _FriendFeedSectionState extends State<_FriendFeedSection> {
         return;
       }
 
-      // 2. 過去24時間以内の履歴を取得
-      final yesterday = DateTime.now()
-          .subtract(const Duration(hours: 24))
-          .toUtc()
-          .toIso8601String();
+      // 2. 今回のニュース日（正午から翌正午まで）の履歴だけを表示する。
+      final newsDayStart = _currentNewsDayStart().toUtc().toIso8601String();
       final newsHistory = await client
           .from('user_read_news')
           .select('id, user_id, news_url, created_at')
           .filter('user_id', 'in', friendIds)
-          .gte('created_at', yesterday)
+          .gte('created_at', newsDayStart)
           .order('created_at', ascending: false);
 
       // 3. データ結合（ニュースの詳細も取得する！）

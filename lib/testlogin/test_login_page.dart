@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 👈 キャッシュ操作のために追加
-import '../news/news_home_page.dart'; // ニュース画面のインポート
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../news/news_home_page.dart';
 
 // ==========================================
 // アプリ全体で使い回せる「テスト用ID保存箱」
@@ -19,30 +21,58 @@ class TestLoginPage extends StatefulWidget {
 class _TestLoginPageState extends State<TestLoginPage> {
   final _uuidController = TextEditingController();
 
-  // 👇 async を追加しています
   Future<void> _loginAsUser() async {
-    final uuid = _uuidController.text.trim();
-    if (uuid.isEmpty) {
+    final input = _uuidController.text.trim().replaceFirst('@', '');
+    if (input.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('IDを入力してください')));
       return;
     }
 
-    // ① ここで入力されたIDを「保存箱」に入れる！
-    TestSession.currentUserId = uuid;
+    try {
+      final profile = await _findProfile(input);
+      if (profile == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('該当するプロフィールが見つかりません')));
+        return;
+      }
 
-    // ② ニュースのキャッシュ（5分制限）を強制的にリセットする！
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('cached_news');
-    await prefs.remove('cached_news_time');
+      // 画面間では必ず profiles.id のUUIDを使う。
+      TestSession.currentUserId = profile['id'].toString();
 
-    if (!mounted) return;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cached_news');
+      await prefs.remove('cached_news_time');
 
-    // ③ 強制的にニュース画面へ移動
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const NewsHomePage()));
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const NewsHomePage()),
+      );
+    } on PostgrestException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('プロフィール取得エラー: ${error.message}')));
+    }
+  }
+
+  Future<Map<String, dynamic>?> _findProfile(String input) {
+    final profiles = Supabase.instance.client.from('profiles');
+    final uuidPattern = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    );
+
+    if (uuidPattern.hasMatch(input)) {
+      return profiles.select('id').eq('id', input).maybeSingle();
+    }
+
+    return profiles
+        .select('id')
+        .or('user_id.eq.$input,username.eq.$input')
+        .maybeSingle();
   }
 
   @override
@@ -61,14 +91,14 @@ class _TestLoginPageState extends State<TestLoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              'profilesテーブルから\nなりすましたいユーザーの「id (UUID)」を\n貼り付けてください。',
+              'テストするユーザーのUUID・ユーザーID・ユーザー名を\n入力してください。',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             TextField(
               controller: _uuidController,
               decoration: const InputDecoration(
-                labelText: 'id (例: 5fb1133b-...)',
+                labelText: 'UUID / ユーザーID / ユーザー名',
                 border: OutlineInputBorder(),
               ),
             ),
