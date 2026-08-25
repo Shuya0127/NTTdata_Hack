@@ -36,7 +36,12 @@ class _ProfilePageState extends State<ProfilePage> {
     // Supabaseからログイン中ユーザーの情報を取得
     _loadProfile();
     _loadFriendCount();
-    _pinnedNewsFuture = PinnedNewsStore.load();
+    _pinnedNewsFuture = _loadPinnedNews();
+  }
+
+  Future<List<PinnedNews>> _loadPinnedNews() async {
+    await PinnedNewsStore.syncCurrentUserPins();
+    return PinnedNewsStore.load();
   }
 
   Future<void> _loadFriendCount() async {
@@ -437,7 +442,7 @@ class _ProfilePageState extends State<ProfilePage> {
     await PinnedNewsStore.toggle(pin);
     if (!mounted) return;
     setState(() {
-      _pinnedNewsFuture = PinnedNewsStore.load();
+      _pinnedNewsFuture = _loadPinnedNews();
     });
     ScaffoldMessenger.of(
       context,

@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../add_friend.dart';
+import '../friend_profile_page.dart';
 import '../news_history_store.dart';
 import '../pinned_news_store.dart';
 import '../notification_bell.dart';
@@ -129,6 +130,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
   }
 
   Future<void> _loadPinnedNews() async {
+    await PinnedNewsStore.syncCurrentUserPins();
     final pinnedNews = await PinnedNewsStore.load();
 
     if (!mounted) return;
@@ -1289,6 +1291,7 @@ class _FriendFeedCardState extends State<_FriendFeedCard> {
     final likeCount = widget.item['like_count'] as int;
     final commentCount = widget.item['comment_count'] as int;
     final username = widget.item['username'] as String;
+    final friendId = widget.item['friend_id'].toString();
     final avatarUrl = widget.item['avatar_url']?.toString();
     final newsTitle = widget.item['news_title'] as String;
     final newsThumbnail = widget.item['news_thumbnail'] as String;
@@ -1309,17 +1312,32 @@ class _FriendFeedCardState extends State<_FriendFeedCard> {
         children: [
           Row(
             children: [
-              ProfileAvatar(radius: 20, imageUrl: avatarUrl),
-              const SizedBox(width: 13),
               Expanded(
-                child: Text(
-                  '@$username',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => FriendProfilePage(friendId: friendId),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      ProfileAvatar(radius: 20, imageUrl: avatarUrl),
+                      const SizedBox(width: 13),
+                      Expanded(
+                        child: Text(
+                          '@$username',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 _friendCountryLabel(newsCountry),
                 style: const TextStyle(

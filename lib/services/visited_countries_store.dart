@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../testlogin/test_login_page.dart';
+
 class VisitedCountriesStore {
   // 国名表示・表記ゆれから map パッケージ用の2文字コード（ISO小文字）への変換マップ
   static final Map<String, String> _countryNameToCode = {
@@ -52,12 +54,14 @@ class VisitedCountriesStore {
     _visitedCountryCodes.addAll(preferences.getStringList(_storageKey) ?? []);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
+      final userId =
+          TestSession.currentUserId ??
+          Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
       final rows = await Supabase.instance.client
           .from('visited_countries')
           .select('country_code')
-          .eq('user_id', user.id);
+          .eq('user_id', userId);
       _visitedCountryCodes.addAll(
         List<Map<String, dynamic>>.from(
           rows,
@@ -85,10 +89,12 @@ class VisitedCountriesStore {
 
     // Supabase に安全に保存（テーブル未作成や未ログイン時でもエラーで落ちないように try-catch）
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
+      final userId =
+          TestSession.currentUserId ??
+          Supabase.instance.client.auth.currentUser?.id;
+      if (userId != null) {
         await Supabase.instance.client.from('visited_countries').upsert({
-          'user_id': user.id,
+          'user_id': userId,
           'country_code': code,
           'visited_at': DateTime.now().toIso8601String(),
         });
