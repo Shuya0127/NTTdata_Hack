@@ -592,7 +592,7 @@ class _NewsHomePageState extends State<NewsHomePage> {
                 children: [
                   const Expanded(
                     child: Text(
-                      'ニュースBeReal',
+                      'Nows',
                       style: TextStyle(
                         fontSize: 27,
                         fontWeight: FontWeight.w800,

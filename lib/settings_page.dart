@@ -1,10 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'account/login_page.dart';
 import 'news/news_home_page.dart';
 import 'notification_preferences.dart';
 import 'profile_edit_page.dart';
 import 'profile_page.dart';
+import 'testlogin/test_login_page.dart';
 import 'world_map_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -57,6 +60,45 @@ class _SettingsPageState extends State<SettingsPage> {
     await NotificationPreferences.setLikesCommentsEnabled(enabled);
   }
 
+  Future<void> _logout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ログアウトしますか？'),
+        content: const Text('この端末でのログイン状態を解除します。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB91C1C),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('ログアウト'),
+          ),
+        ],
+      ),
+    );
+    if (shouldLogout != true) return;
+
+    try {
+      await Supabase.instance.client.auth.signOut();
+      TestSession.currentUserId = null;
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (_) => false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ログアウトに失敗しました')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFFE4EBF5); // 背景色
@@ -91,6 +133,19 @@ class _SettingsPageState extends State<SettingsPage> {
                     MaterialPageRoute(builder: (_) => const ProfileEditPage()),
                   );
                 },
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Color(0xFFB91C1C)),
+                title: const Text(
+                  'ログアウト',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFB91C1C),
+                  ),
+                ),
+                onTap: _logout,
               ),
             ]),
 

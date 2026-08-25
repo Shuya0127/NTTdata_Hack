@@ -140,9 +140,8 @@ class _LikesCommentsPageState extends State<LikesCommentsPage> {
         });
       }
       merged.sort(
-        (a, b) => (b['created_at'] as String).compareTo(
-          a['created_at'] as String,
-        ),
+        (a, b) =>
+            (b['created_at'] as String).compareTo(a['created_at'] as String),
       );
 
       if (!mounted) return;
@@ -180,17 +179,11 @@ class _LikesCommentsPageState extends State<LikesCommentsPage> {
           ? const Center(child: CircularProgressIndicator())
           : _loadError != null
           ? Center(
-              child: Text(
-                _loadError!,
-                style: const TextStyle(color: subtext),
-              ),
+              child: Text(_loadError!, style: const TextStyle(color: subtext)),
             )
           : _reactions.isEmpty
           ? const Center(
-              child: Text(
-                'まだいいね・コメントはありません',
-                style: TextStyle(color: subtext),
-              ),
+              child: Text('まだいいね・コメントはありません', style: TextStyle(color: subtext)),
             )
           : ListView.separated(
               padding: const EdgeInsets.all(20),
@@ -211,7 +204,8 @@ class _LikesCommentsPageState extends State<LikesCommentsPage> {
                       children: [
                         CircleAvatar(
                           backgroundColor: const Color(0xFFEFF3F8),
-                          backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
+                          backgroundImage:
+                              (avatarUrl != null && avatarUrl.isNotEmpty)
                               ? NetworkImage(avatarUrl)
                               : null,
                           child: (avatarUrl == null || avatarUrl.isEmpty)

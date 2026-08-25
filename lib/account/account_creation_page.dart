@@ -3,29 +3,26 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../news/news_home_page.dart';
+import '../testlogin/test_login_page.dart';
 import 'login_page.dart';
 
 class AccountCreationPage extends StatefulWidget {
   const AccountCreationPage({super.key});
 
   @override
-  State<AccountCreationPage> createState() =>
-      _AccountCreationPageState();
+  State<AccountCreationPage> createState() => _AccountCreationPageState();
 }
 
 class _AccountCreationPageState extends State<AccountCreationPage> {
-  final TextEditingController _userIdController =
-      TextEditingController();
+  final TextEditingController _userIdController = TextEditingController();
 
-  final TextEditingController _usernameController =
-      TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
 
-  final TextEditingController _passwordController =
-      TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  final TextEditingController _birthdayController =
-      TextEditingController();
+  final TextEditingController _birthdayController = TextEditingController();
 
   final ImagePicker _imagePicker = ImagePicker();
   Uint8List? _avatarBytes;
@@ -82,7 +79,8 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
 
     const bucket = 'profile-images';
     // フォルダ階層を作らず、バケット直下にユニーク名で保存（RLSポリシーの階層不一致を回避）
-    final fileName = 'avatar_${authUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final fileName =
+        'avatar_${authUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final storage = Supabase.instance.client.storage.from(bucket);
 
     print('=== [DEBUG] Storage Upload Start: $fileName ===');
@@ -90,10 +88,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
     await storage.uploadBinary(
       fileName,
       imageBytes,
-      fileOptions: const FileOptions(
-        contentType: 'image/jpeg',
-        upsert: true,
-      ),
+      fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
     );
 
     final publicUrl = storage.getPublicUrl(fileName);
@@ -103,11 +98,9 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
 
   Future<void> _createAccount() async {
     if (!_agreeTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('利用規約とプライバシーポリシーに同意してください'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('利用規約とプライバシーポリシーに同意してください')));
       return;
     }
 
@@ -146,6 +139,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
       final User? user = supabase.auth.currentUser ?? res.user;
 
       if (user != null) {
+        TestSession.currentUserId = null;
         // 3. 画像のアップロード
         String? avatarUrl;
         if (_avatarBytes != null) {
@@ -174,9 +168,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (context) => const NewsHomePage(),
-            ),
+            MaterialPageRoute(builder: (context) => const NewsHomePage()),
           );
         }
       }
@@ -253,7 +245,6 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
               // ============================
               // プロフィール画像
               // ============================
-
               GestureDetector(
                 onTap: _pickProfileImage,
                 child: Container(
@@ -262,9 +253,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFCBD5E1),
-                    ),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: _avatarBytes != null
@@ -298,10 +287,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
 
               const Text(
                 'プロフィール写真を追加（タップして選択）',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF64748B),
-                ),
+                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
               ),
 
               const SizedBox(height: 30),
@@ -309,7 +295,6 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
               // ============================
               // 入力フォーム
               // ============================
-
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
@@ -345,8 +330,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
                       suffixIcon: IconButton(
                         onPressed: () {
                           setState(() {
-                            _obscurePassword =
-                                !_obscurePassword;
+                            _obscurePassword = !_obscurePassword;
                           });
                         },
                         icon: Icon(
@@ -379,7 +363,6 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
               // ============================
               // 利用規約
               // ============================
-
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -401,10 +384,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
                   const Expanded(
                     child: Text(
                       '利用規約とプライバシーポリシーに同意する',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                      ),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                     ),
                   ),
                 ],
@@ -415,28 +395,21 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
               // ============================
               // アカウント作成ボタン
               // ============================
-
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: FilledButton(
-                  onPressed:
-                      _agreeTerms ? _createAccount : null,
+                  onPressed: _agreeTerms ? _createAccount : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor:
-                        const Color(0xFF111827),
-                    disabledBackgroundColor:
-                        const Color(0xFF94A3B8),
+                    backgroundColor: const Color(0xFF111827),
+                    disabledBackgroundColor: const Color(0xFF94A3B8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
                     'アカウントを作成',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -446,16 +419,12 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
               // ============================
               // ログインリンク
               // ============================
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
                     'すでにアカウントをお持ちの方はこちら ',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                    ),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
 
                   GestureDetector(
@@ -531,16 +500,9 @@ class _InputField extends StatelessWidget {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF94A3B8),
-            ),
+            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
             prefixIcon: prefixIcon != null
-                ? Icon(
-                    prefixIcon,
-                    size: 19,
-                    color: const Color(0xFF94A3B8),
-                  )
+                ? Icon(prefixIcon, size: 19, color: const Color(0xFF94A3B8))
                 : null,
             suffixIcon: suffixIcon,
             filled: true,
@@ -551,15 +513,11 @@ class _InputField extends StatelessWidget {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: Color(0xFFD6DEE8),
-              ),
+              borderSide: const BorderSide(color: Color(0xFFD6DEE8)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: Color(0xFFD6DEE8),
-              ),
+              borderSide: const BorderSide(color: Color(0xFFD6DEE8)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),

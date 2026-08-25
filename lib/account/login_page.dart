@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../news/news_home_page.dart';
+import '../testlogin/test_login_page.dart';
 import 'account_creation_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -39,10 +40,11 @@ class _LoginPageState extends State<LoginPage> {
         email: authEmailFromUserId(userId),
         password: password,
       );
+      TestSession.currentUserId = null;
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const NewsHomePage()),
+        (_) => false,
       );
     } on AuthException catch (_) {
       _showError('ユーザーIDまたはパスワードが正しくありません');
@@ -65,15 +67,15 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFE6EDF6),
       appBar: AppBar(
-        title: const Text('ログイン'),
         backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
       ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
@@ -81,6 +83,26 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                const Icon(
+                  Icons.newspaper_outlined,
+                  size: 48,
+                  color: Color(0xFF334155),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Nows',
+                  style: TextStyle(
+                    fontSize: 23,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'ユーザーIDとパスワードでログイン',
+                  style: TextStyle(color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 26),
                 _LoginInput(
                   label: 'ユーザーID',
                   controller: _userIdController,
@@ -92,12 +114,13 @@ class _LoginPageState extends State<LoginPage> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   suffixIcon: IconButton(
-                    onPressed: () => setState(
-                      () => _obscurePassword = !_obscurePassword,
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
                     ),
-                    icon: Icon(_obscurePassword
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined),
                   ),
                 ),
                 const SizedBox(height: 22),
@@ -108,6 +131,17 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: _isLoading ? null : _login,
                     child: Text(_isLoading ? 'ログイン中...' : 'ログイン'),
                   ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AccountCreationPage(),
+                      ),
+                    );
+                  },
+                  child: const Text('アカウントを作成する'),
                 ),
               ],
             ),

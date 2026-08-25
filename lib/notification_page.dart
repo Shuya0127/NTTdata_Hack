@@ -82,7 +82,8 @@ class _NotificationPageState extends State<NotificationPage> {
         .select('id')
         .inFilter('user_read_news_id', historyIds)
         .neq('user_id', currentUserId);
-    return List<dynamic>.from(likes).length + List<dynamic>.from(comments).length;
+    return List<dynamic>.from(likes).length +
+        List<dynamic>.from(comments).length;
   }
 
   @override
