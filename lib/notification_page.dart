@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'add_friend.dart';
+import 'likes_comments_page.dart';
+import 'news/news_home_page.dart';
 import 'notification_preferences.dart';
+import 'testlogin/test_login_page.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -25,13 +28,20 @@ class _NotificationPageState extends State<NotificationPage> {
         await NotificationPreferences.followRequestsEnabled();
     final newsUpdatesEnabled =
         await NotificationPreferences.newsUpdatesEnabled();
+    final likesCommentsEnabled =
+        await NotificationPreferences.likesCommentsEnabled();
     final pendingRequests = followRequestsEnabled
         ? await _loadPendingRequestsCount()
+        : 0;
+    final likesCommentsCount = likesCommentsEnabled
+        ? await _loadLikesCommentsCount()
         : 0;
     return _NotificationSettings(
       followRequestsEnabled: followRequestsEnabled,
       newsUpdatesEnabled: newsUpdatesEnabled,
+      likesCommentsEnabled: likesCommentsEnabled,
       pendingRequests: pendingRequests,
+      likesCommentsCount: likesCommentsCount,
     );
   }
 
@@ -45,6 +55,34 @@ class _NotificationPageState extends State<NotificationPage> {
         .eq('receiver_id', user.id)
         .eq('status', 'pending');
     return List<dynamic>.from(rows).length;
+  }
+
+  Future<int> _loadLikesCommentsCount() async {
+    final client = Supabase.instance.client;
+    final currentUserId =
+        TestSession.currentUserId ?? client.auth.currentUser?.id;
+    if (currentUserId == null) return 0;
+
+    final myHistory = await client
+        .from('user_read_news')
+        .select('id')
+        .eq('user_id', currentUserId);
+    final historyIds = List<Map<String, dynamic>>.from(
+      myHistory,
+    ).map((history) => history['id'].toString()).toList();
+    if (historyIds.isEmpty) return 0;
+
+    final likes = await client
+        .from('news_likes')
+        .select('id')
+        .inFilter('user_read_news_id', historyIds)
+        .neq('user_id', currentUserId);
+    final comments = await client
+        .from('news_comments')
+        .select('id')
+        .inFilter('user_read_news_id', historyIds)
+        .neq('user_id', currentUserId);
+    return List<dynamic>.from(likes).length + List<dynamic>.from(comments).length;
   }
 
   @override
@@ -103,6 +141,39 @@ class _NotificationPageState extends State<NotificationPage> {
           FutureBuilder<_NotificationSettings>(
             future: _settingsFuture,
             builder: (context, snapshot) {
+              final settings = snapshot.data;
+              final count = settings?.likesCommentsCount ?? 0;
+              final likesCommentsEnabled =
+                  settings?.likesCommentsEnabled ?? true;
+              return _NotificationTile(
+                icon: Icons.thumb_up_alt_outlined,
+                title: 'いいね・コメント',
+                message: !likesCommentsEnabled
+                    ? 'いいね・コメント通知はオフです'
+                    : count == 0
+                    ? 'まだいいね・コメントはありません'
+                    : '$count件のいいね・コメントがあります',
+                highlighted: count > 0,
+                onTap: likesCommentsEnabled
+                    ? () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const LikesCommentsPage(),
+                          ),
+                        );
+                        if (!mounted) return;
+                        setState(() {
+                          _settingsFuture = _loadSettings();
+                        });
+                      }
+                    : null,
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          FutureBuilder<_NotificationSettings>(
+            future: _settingsFuture,
+            builder: (context, snapshot) {
               final newsUpdatesEnabled =
                   snapshot.data?.newsUpdatesEnabled ?? true;
               return _NotificationTile(
@@ -111,7 +182,12 @@ class _NotificationPageState extends State<NotificationPage> {
                 message: newsUpdatesEnabled
                     ? '最新ニュースをホームで確認できます'
                     : 'ニュース更新通知はオフです',
-                onTap: null,
+                onTap: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const NewsHomePage()),
+                    (route) => false,
+                  );
+                },
               );
             },
           ),
@@ -133,12 +209,16 @@ class _NotificationSettings {
   const _NotificationSettings({
     required this.followRequestsEnabled,
     required this.newsUpdatesEnabled,
+    required this.likesCommentsEnabled,
     required this.pendingRequests,
+    required this.likesCommentsCount,
   });
 
   final bool followRequestsEnabled;
   final bool newsUpdatesEnabled;
+  final bool likesCommentsEnabled;
   final int pendingRequests;
+  final int likesCommentsCount;
 }
 
 class _NotificationTile extends StatelessWidget {

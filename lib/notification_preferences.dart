@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class NotificationPreferences {
   static const _newsUpdatesKey = 'news_updates_notifications_enabled';
   static const _followRequestsKey = 'follow_request_notifications_enabled';
+  static const _likesCommentsKey = 'likes_comments_notifications_enabled';
 
   static Future<bool> newsUpdatesEnabled() async {
     final preferences = await SharedPreferences.getInstance();
@@ -15,6 +16,11 @@ class NotificationPreferences {
     return preferences.getBool(_followRequestsKey) ?? true;
   }
 
+  static Future<bool> likesCommentsEnabled() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getBool(_likesCommentsKey) ?? true;
+  }
+
   static Future<void> setNewsUpdatesEnabled(bool enabled) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_newsUpdatesKey, enabled);
@@ -23,5 +29,10 @@ class NotificationPreferences {
   static Future<void> setFollowRequestsEnabled(bool enabled) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_followRequestsKey, enabled);
+  }
+
+  static Future<void> setLikesCommentsEnabled(bool enabled) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_likesCommentsKey, enabled);
   }
 }

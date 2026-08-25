@@ -17,6 +17,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _newsNotification = true;
   bool _followRequestNotification = true;
+  bool _likesCommentsNotification = true;
 
   // タブの選択インデックス（3: 設定）
   int _selectedIndex = 3;
@@ -31,10 +32,13 @@ class _SettingsPageState extends State<SettingsPage> {
     final newsEnabled = await NotificationPreferences.newsUpdatesEnabled();
     final followRequestsEnabled =
         await NotificationPreferences.followRequestsEnabled();
+    final likesCommentsEnabled =
+        await NotificationPreferences.likesCommentsEnabled();
     if (!mounted) return;
     setState(() {
       _newsNotification = newsEnabled;
       _followRequestNotification = followRequestsEnabled;
+      _likesCommentsNotification = likesCommentsEnabled;
     });
   }
 
@@ -46,6 +50,11 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _setFollowRequestNotification(bool enabled) async {
     setState(() => _followRequestNotification = enabled);
     await NotificationPreferences.setFollowRequestsEnabled(enabled);
+  }
+
+  Future<void> _setLikesCommentsNotification(bool enabled) async {
+    setState(() => _likesCommentsNotification = enabled);
+    await NotificationPreferences.setLikesCommentsEnabled(enabled);
   }
 
   @override
@@ -101,6 +110,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'フォロー申請通知',
                 value: _followRequestNotification,
                 onChanged: _setFollowRequestNotification,
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              _buildSwitchTile(
+                title: 'いいね・コメント通知',
+                value: _likesCommentsNotification,
+                onChanged: _setLikesCommentsNotification,
               ),
             ]),
           ],
