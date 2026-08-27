@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../news/news_home_page.dart';
+import '../services/notification_service.dart';
 
 // ==========================================
 // アプリ全体で使い回せる「テスト用ID保存箱」
@@ -42,6 +45,7 @@ class _TestLoginPageState extends State<TestLoginPage> {
 
       // 画面間では必ず profiles.id のUUIDを使う。
       TestSession.currentUserId = profile['id'].toString();
+      unawaited(NotificationService.saveTokenForCurrentUser());
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('cached_news');

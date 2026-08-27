@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../news/news_home_page.dart';
+import '../services/notification_service.dart';
 import '../testlogin/test_login_page.dart';
 import 'login_page.dart';
 
@@ -164,6 +166,8 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
 
         // 5. profiles テーブルに保存
         await supabase.from('profiles').insert(profile);
+
+        unawaited(NotificationService.saveTokenForCurrentUser());
 
         if (mounted) {
           Navigator.pushReplacement(
