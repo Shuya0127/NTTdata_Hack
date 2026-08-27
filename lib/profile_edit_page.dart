@@ -43,6 +43,146 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     }
   }
 
+  Future<void> _showPasswordEditDialog() async {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('パスワード変更'),
+          content: SizedBox(
+            width: 340,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: currentPasswordController,
+                    autofocus: true,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: '現在のパスワード',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: '新しいパスワード',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: confirmPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: '新しいパスワード確認',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('キャンセル'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final currentPassword = currentPasswordController.text.trim();
+                final newPassword = newPasswordController.text.trim();
+                final confirmPassword = confirmPasswordController.text.trim();
+
+                if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('すべての項目を入力してください')),
+                  );
+                  return;
+                }
+
+                if (newPassword.length < 8) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('新しいパスワードは8文字以上で入力してください')),
+                  );
+                  return;
+                }
+
+                if (newPassword != confirmPassword) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('新しいパスワードが一致しません')),
+                  );
+                  return;
+                }
+
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != true) return;
+
+    await _updatePassword(
+      currentPassword: currentPasswordController.text.trim(),
+      newPassword: newPasswordController.text.trim(),
+    );
+  }
+
+  Future<void> _updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null || user.email == null || user.email!.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ログイン状態を確認できませんでした')),
+      );
+      return;
+    }
+
+    try {
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: user.email!,
+        password: currentPassword,
+      );
+
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('パスワードを更新しました')),
+      );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('現在のパスワードが正しくないか、更新に失敗しました: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('パスワード更新に失敗しました: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _showUsernameEditDialog() async {
     final currentName = _username ?? '';
     final controller = TextEditingController(text: currentName);
@@ -313,7 +453,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 _EditOption(
                   icon: Icons.lock_outline,
                   title: 'パスワード変更',
-                  onTap: () {},
+                  onTap: _showPasswordEditDialog,
                 ),
               ],
             ),
