@@ -311,12 +311,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 _EditOption(
-                  icon: Icons.badge_outlined,
-                  title: 'ユーザーID変更',
-                  onTap: () {},
-                ),
-                const Divider(height: 1, indent: 16, endIndent: 16),
-                _EditOption(
                   icon: Icons.lock_outline,
                   title: 'パスワード変更',
                   onTap: () {},
