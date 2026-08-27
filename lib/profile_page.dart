@@ -6,6 +6,7 @@ import 'friend_list_page.dart';
 import 'news/news_home_page.dart';
 import 'news_history_page.dart';
 import 'notification_bell.dart';
+import 'notification_dot_icon.dart';
 import 'pinned_news_store.dart';
 import 'settings_page.dart';
 import 'testlogin/test_login_page.dart';
@@ -405,7 +406,10 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icon(Icons.location_on_outlined),
             label: '地図',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
+          BottomNavigationBarItem(
+            icon: NotificationDotIcon(icon: Icons.person),
+            label: 'マイページ',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
             label: '設定',

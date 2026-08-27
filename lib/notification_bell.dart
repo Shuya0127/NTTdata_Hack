@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'notification_counts.dart';
 import 'notification_page.dart';
-import 'notification_preferences.dart';
 
 class NotificationBell extends StatefulWidget {
   const NotificationBell({super.key, this.iconSize = 28});
@@ -14,40 +13,30 @@ class NotificationBell extends StatefulWidget {
 }
 
 class _NotificationBellState extends State<NotificationBell> {
-  late Future<int> _countFuture;
+  late Future<bool> _hasUnseenFuture;
 
   @override
   void initState() {
     super.initState();
-    _countFuture = _loadUnreadCount();
-  }
-
-  Future<int> _loadUnreadCount() async {
-    if (!await NotificationPreferences.followRequestsEnabled()) return 0;
-
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return 0;
-    final rows = await Supabase.instance.client
-        .from('friendships')
-        .select('id')
-        .eq('receiver_id', user.id)
-        .eq('status', 'pending');
-    return List<dynamic>.from(rows).length;
+    _hasUnseenFuture = NotificationCounts.hasUnseen();
   }
 
   Future<void> _openNotifications() async {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const NotificationPage()));
-    if (mounted) setState(() => _countFuture = _loadUnreadCount());
+    // NotificationPage側で「確認済み」を記録しているので、戻ってきたら再判定する。
+    if (mounted) {
+      setState(() => _hasUnseenFuture = NotificationCounts.hasUnseen());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<int>(
-      future: _countFuture,
+    return FutureBuilder<bool>(
+      future: _hasUnseenFuture,
       builder: (context, snapshot) {
-        final count = snapshot.data ?? 0;
+        final hasUnseen = snapshot.data ?? false;
         return Stack(
           clipBehavior: Clip.none,
           children: [
@@ -59,29 +48,17 @@ class _NotificationBellState extends State<NotificationBell> {
                 size: widget.iconSize,
               ),
             ),
-            if (count > 0)
+            if (hasUnseen)
               Positioned(
-                right: 4,
-                top: 4,
+                right: 6,
+                top: 6,
                 child: Container(
-                  constraints: const BoxConstraints(
-                    minWidth: 18,
-                    minHeight: 18,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  alignment: Alignment.center,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     color: const Color(0xFFDC2626),
-                    borderRadius: BorderRadius.circular(10),
+                    shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 1.5),
-                  ),
-                  child: Text(
-                    count > 99 ? '99+' : '$count',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
                   ),
                 ),
               ),

@@ -21,6 +21,8 @@ class _NotificationPageState extends State<NotificationPage> {
   void initState() {
     super.initState();
     _settingsFuture = _loadSettings();
+    // この画面を開いた時点で「確認済み」とし、マイページ・ベルの赤い点を消す。
+    NotificationPreferences.markNotificationsSeenNow();
   }
 
   Future<_NotificationSettings> _loadSettings() async {

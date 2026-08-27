@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'account/login_page.dart';
 import 'news/news_home_page.dart';
+import 'notification_dot_icon.dart';
 import 'notification_preferences.dart';
 import 'profile_edit_page.dart';
 import 'profile_page.dart';
@@ -222,7 +223,7 @@ class _SettingsPageState extends State<SettingsPage> {
             label: '地図',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
+            icon: NotificationDotIcon(icon: Icons.person_outline),
             label: 'マイページ',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: '設定'),

@@ -13,6 +13,7 @@ import '../friend_profile_page.dart';
 import '../news_history_store.dart';
 import '../pinned_news_store.dart';
 import '../notification_bell.dart';
+import '../notification_dot_icon.dart';
 import '../profile_page.dart';
 import '../profile_avatar.dart';
 import '../settings_page.dart';
@@ -1729,6 +1730,7 @@ class _BottomNavigation extends StatelessWidget {
               _NavItem(
                 icon: Icons.person_outline,
                 label: 'マイページ',
+                showBadge: true,
                 onTap: () {
                   Navigator.pushReplacement(
                     context,
@@ -1767,12 +1769,14 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
+  final bool showBadge;
   final VoidCallback? onTap;
 
   const _NavItem({
     required this.icon,
     required this.label,
     this.active = false,
+    this.showBadge = false,
     this.onTap,
   });
 
@@ -1785,7 +1789,9 @@ class _NavItem extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 27),
+          showBadge
+              ? NotificationDotIcon(icon: icon, color: color, size: 27)
+              : Icon(icon, color: color, size: 27),
 
           const SizedBox(height: 4),
 

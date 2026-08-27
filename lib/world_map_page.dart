@@ -4,6 +4,7 @@ import 'package:countries_world_map/data/maps/world_map.dart';
 import 'package:flutter/material.dart';
 
 import 'news/news_home_page.dart';
+import 'notification_dot_icon.dart';
 import 'profile_page.dart';
 import 'settings_page.dart';
 
@@ -166,7 +167,7 @@ class _WorldMapPageState extends State<WorldMapPage> {
           ),
           BottomNavigationBarItem(icon: Icon(Icons.location_on), label: '地図'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
+            icon: NotificationDotIcon(icon: Icons.person_outline),
             label: 'マイページ',
           ),
           BottomNavigationBarItem(
