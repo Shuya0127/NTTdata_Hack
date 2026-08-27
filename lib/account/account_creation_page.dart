@@ -321,7 +321,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
                   children: [
                     _InputField(
                       label: 'ユーザーID',
-                      hint: 'news_user',
+                      hint: 'news_user（後から変更できません）',
                       controller: _userIdController,
                       prefixIcon: Icons.person_outline,
                     ),
