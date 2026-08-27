@@ -1,9 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'account/login_page.dart';
 import 'news/news_home_page.dart';
+import 'notification_preferences.dart';
 import 'profile_edit_page.dart';
 import 'profile_page.dart';
+import 'testlogin/test_login_page.dart';
 import 'world_map_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -14,13 +18,86 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  // スイッチの状態管理
-  bool _pushNotification = true;
   bool _newsNotification = true;
-  bool _followerNotification = false;
+  bool _followRequestNotification = true;
+  bool _likesCommentsNotification = true;
 
   // タブの選択インデックス（3: 設定）
   int _selectedIndex = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationPreferences();
+  }
+
+  Future<void> _loadNotificationPreferences() async {
+    final newsEnabled = await NotificationPreferences.newsUpdatesEnabled();
+    final followRequestsEnabled =
+        await NotificationPreferences.followRequestsEnabled();
+    final likesCommentsEnabled =
+        await NotificationPreferences.likesCommentsEnabled();
+    if (!mounted) return;
+    setState(() {
+      _newsNotification = newsEnabled;
+      _followRequestNotification = followRequestsEnabled;
+      _likesCommentsNotification = likesCommentsEnabled;
+    });
+  }
+
+  Future<void> _setNewsNotification(bool enabled) async {
+    setState(() => _newsNotification = enabled);
+    await NotificationPreferences.setNewsUpdatesEnabled(enabled);
+  }
+
+  Future<void> _setFollowRequestNotification(bool enabled) async {
+    setState(() => _followRequestNotification = enabled);
+    await NotificationPreferences.setFollowRequestsEnabled(enabled);
+  }
+
+  Future<void> _setLikesCommentsNotification(bool enabled) async {
+    setState(() => _likesCommentsNotification = enabled);
+    await NotificationPreferences.setLikesCommentsEnabled(enabled);
+  }
+
+  Future<void> _logout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ログアウトしますか？'),
+        content: const Text('この端末でのログイン状態を解除します。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB91C1C),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('ログアウト'),
+          ),
+        ],
+      ),
+    );
+    if (shouldLogout != true) return;
+
+    try {
+      await Supabase.instance.client.auth.signOut();
+      TestSession.currentUserId = null;
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (_) => false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ログアウトに失敗しました')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +134,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   );
                 },
               ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Color(0xFFB91C1C)),
+                title: const Text(
+                  'ログアウト',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFB91C1C),
+                  ),
+                ),
+                onTap: _logout,
+              ),
             ]),
 
             const SizedBox(height: 24),
@@ -66,21 +156,21 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 8),
             _buildCardGroup([
               _buildSwitchTile(
-                title: 'プッシュ通知',
-                value: _pushNotification,
-                onChanged: (val) => setState(() => _pushNotification = val),
-              ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-              _buildSwitchTile(
                 title: 'ニュース更新通知',
                 value: _newsNotification,
-                onChanged: (val) => setState(() => _newsNotification = val),
+                onChanged: _setNewsNotification,
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               _buildSwitchTile(
-                title: 'フォロワー通知',
-                value: _followerNotification,
-                onChanged: (val) => setState(() => _followerNotification = val),
+                title: 'フォロー申請通知',
+                value: _followRequestNotification,
+                onChanged: _setFollowRequestNotification,
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              _buildSwitchTile(
+                title: 'いいね・コメント通知',
+                value: _likesCommentsNotification,
+                onChanged: _setLikesCommentsNotification,
               ),
             ]),
           ],

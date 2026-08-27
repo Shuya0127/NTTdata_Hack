@@ -22,9 +22,7 @@ class AccountApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'アカウント作成',
-      theme: ThemeData(
-        useMaterial3: true,
-      ),
+      theme: ThemeData(useMaterial3: true),
       home: const AccountCreationPage(),
     );
   }

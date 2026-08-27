@@ -15,8 +15,20 @@ class WorldMapPage extends StatefulWidget {
 }
 
 class _WorldMapPageState extends State<WorldMapPage> {
-  Map<String, Color> get _visitedCountries => VisitedCountriesStore.visitedCountriesMap;
+  Map<String, Color> get _visitedCountries =>
+      VisitedCountriesStore.visitedCountriesMap;
   int _selectedIndex = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVisitedCountries();
+  }
+
+  Future<void> _loadVisitedCountries() async {
+    await VisitedCountriesStore.load();
+    if (mounted) setState(() {});
+  }
 
   void _onNavigationTapped(int index) {
     if (index == 0) {
@@ -73,7 +85,9 @@ class _WorldMapPageState extends State<WorldMapPage> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.refresh, color: textColor),
-                    onPressed: () {
+                    onPressed: () async {
+                      await _loadVisitedCountries();
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('マップを更新しました')),
                       );

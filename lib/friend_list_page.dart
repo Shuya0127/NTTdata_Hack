@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'testlogin/test_login_page.dart';
 
+import 'friend_profile_page.dart';
 import 'profile_avatar.dart';
 
 class FriendSummary {
   const FriendSummary({
     required this.relationshipId,
+    required this.profileId,
     required this.userId,
     required this.username,
     this.avatarUrl,
   });
 
   final String relationshipId;
+  final String profileId;
   final String userId;
   final String username;
   final String? avatarUrl;
@@ -20,18 +24,24 @@ class FriendSummary {
 class FriendRepository {
   static Future<List<FriendSummary>> loadFriends() async {
     final client = Supabase.instance.client;
-    final currentUser = client.auth.currentUser;
-    if (currentUser == null) return [];
 
+    // ニュース画面と同じように、まずは TestSession を確認する！
+    final currentUserId =
+        TestSession.currentUserId ?? client.auth.currentUser?.id;
+
+    if (currentUserId == null) return [];
+
+    // currentUser.id だった部分を currentUserId に書き換える
     final sentRelationships = await client
         .from('friendships')
         .select('id, receiver_id')
-        .eq('sender_id', currentUser.id)
+        .eq('sender_id', currentUserId)
         .eq('status', 'accepted');
+
     final receivedRelationships = await client
         .from('friendships')
         .select('id, sender_id')
-        .eq('receiver_id', currentUser.id)
+        .eq('receiver_id', currentUserId)
         .eq('status', 'accepted');
 
     final friendsById = <String, String>{};
@@ -63,6 +73,7 @@ class FriendRepository {
         .map(
           (entry) => FriendSummary(
             relationshipId: entry.value,
+            profileId: entry.key,
             userId:
                 profilesById[entry.key]?['user_id']?.toString() ?? entry.key,
             username:
@@ -119,18 +130,40 @@ class _FriendListPageState extends State<FriendListPage> {
 
     try {
       await FriendRepository.removeFriend(friend.relationshipId);
-      if (!mounted) return;
-      setState(() => _friendsFuture = FriendRepository.loadFriends());
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('@${friend.username}さんをフレンドから削除しました')),
-      );
+      _showRemovalSuccess(friend);
     } catch (error) {
       debugPrint('フレンド削除エラー: $error');
+      final wasRemoved = await _wasRelationshipRemoved(friend.relationshipId);
+      if (wasRemoved) {
+        _showRemovalSuccess(friend);
+        return;
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('フレンドの削除に失敗しました')));
     }
+  }
+
+  Future<bool> _wasRelationshipRemoved(String relationshipId) async {
+    try {
+      final relationship = await Supabase.instance.client
+          .from('friendships')
+          .select('id')
+          .eq('id', relationshipId)
+          .maybeSingle();
+      return relationship == null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _showRemovalSuccess(FriendSummary friend) {
+    if (!mounted) return;
+    setState(() => _friendsFuture = FriendRepository.loadFriends());
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('@${friend.username}さんをフレンドから削除しました')),
+    );
   }
 
   @override
@@ -173,51 +206,60 @@ class _FriendListPageState extends State<FriendListPage> {
             separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final friend = friends[index];
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
+              return Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    ProfileAvatar(radius: 24, imageUrl: friend.avatarUrl),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '@${friend.username}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            friend.userId,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: subTextColor,
-                            ),
-                          ),
-                        ],
-                      ),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          FriendProfilePage(friendId: friend.profileId),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.person_remove_outlined),
-                      tooltip: 'フレンドを削除',
-                      color: const Color(0xFFB91C1C),
-                      onPressed: () => _removeFriend(friend),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        ProfileAvatar(radius: 24, imageUrl: friend.avatarUrl),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '@${friend.username}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                friend.userId,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: subTextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.person_remove_outlined),
+                          tooltip: 'フレンドを削除',
+                          color: const Color(0xFFB91C1C),
+                          onPressed: () => _removeFriend(friend),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             },
