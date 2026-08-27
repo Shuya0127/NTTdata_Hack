@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../news/news_home_page.dart';
+import '../services/notification_service.dart';
 import '../testlogin/test_login_page.dart';
 import 'account_creation_page.dart';
 
@@ -41,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
         password: password,
       );
       TestSession.currentUserId = null;
+      unawaited(NotificationService.saveTokenForCurrentUser());
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const NewsHomePage()),

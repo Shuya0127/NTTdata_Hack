@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'notification_dot_icon.dart';
 import 'settings_page.dart';
 import 'testlogin/test_login_page.dart';
 import 'world_map_page.dart';
@@ -616,7 +617,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
             label: '地図',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
+            icon: NotificationDotIcon(icon: Icons.person_outline),
             label: 'マイページ',
           ),
           BottomNavigationBarItem(
