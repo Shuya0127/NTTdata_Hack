@@ -27,7 +27,9 @@ class _NotificationBellState extends State<NotificationBell> {
     ).push(MaterialPageRoute(builder: (_) => const NotificationPage()));
     // NotificationPage側で「確認済み」を記録しているので、戻ってきたら再判定する。
     if (mounted) {
-      setState(() => _hasUnseenFuture = NotificationCounts.hasUnseen());
+      setState(() {
+        _hasUnseenFuture = NotificationCounts.hasUnseen();
+      });
     }
   }
 

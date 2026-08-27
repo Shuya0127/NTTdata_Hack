@@ -160,7 +160,9 @@ class _FriendListPageState extends State<FriendListPage> {
 
   void _showRemovalSuccess(FriendSummary friend) {
     if (!mounted) return;
-    setState(() => _friendsFuture = FriendRepository.loadFriends());
+    setState(() {
+      _friendsFuture = FriendRepository.loadFriends();
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('@${friend.username}さんをフレンドから削除しました')),
     );
