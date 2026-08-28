@@ -176,7 +176,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                         maxScale: 5,
                         child: SimpleMap(
                           instructions: SMapWorld.instructions,
-                          defaultColor: const Color(0xFFF8FAFC),
+                          defaultColor: const Color(0xFFE2E8F0),
                           colors: {
                             for (final country in friend.visitedCountries)
                               country: const Color(0xFFFF9800),
