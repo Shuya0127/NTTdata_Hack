@@ -2,6 +2,7 @@ import 'package:countries_world_map/countries_world_map.dart';
 import 'package:countries_world_map/data/maps/world_map.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'profile_avatar.dart';
 
@@ -194,65 +195,87 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
 
   Widget _buildPinCard(Map<String, dynamic> pin) {
     final thumbnailUrl = pin['thumbnail_url']?.toString() ?? '';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    final uri = Uri.tryParse(pin['news_url']?.toString() ?? '');
+    final canOpenNews = uri != null && uri.hasScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: thumbnailUrl.isEmpty
-                ? Container(
-                    width: 64,
-                    height: 64,
-                    color: const Color(0xFFE2E8F0),
-                    child: const Icon(Icons.article_outlined),
-                  )
-                : Image.network(
-                    thumbnailUrl,
-                    width: 64,
-                    height: 64,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      width: 64,
-                      height: 64,
-                      color: const Color(0xFFE2E8F0),
-                      child: const Icon(Icons.article_outlined),
+        onTap: canOpenNews
+            ? () async {
+                final opened = await launchUrl(
+                  uri,
+                  mode: LaunchMode.externalApplication,
+                );
+                if (!opened && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('ニュースサイトを開けませんでした')),
+                  );
+                }
+              }
+            : null,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: thumbnailUrl.isEmpty
+                    ? Container(
+                        width: 64,
+                        height: 64,
+                        color: const Color(0xFFE2E8F0),
+                        child: const Icon(Icons.article_outlined),
+                      )
+                    : Image.network(
+                        thumbnailUrl,
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          width: 64,
+                          height: 64,
+                          color: const Color(0xFFE2E8F0),
+                          child: const Icon(Icons.article_outlined),
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pin['title']?.toString() ?? 'タイトルなし',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF334155),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  pin['title']?.toString() ?? 'タイトルなし',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF334155),
-                    fontWeight: FontWeight.w700,
-                  ),
+                    const SizedBox(height: 6),
+                    Text(
+                      pin['source']?.toString() ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  pin['source']?.toString() ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
