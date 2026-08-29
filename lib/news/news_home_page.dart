@@ -1855,6 +1855,13 @@ class _MyTodayNewsFeedCardState extends State<_MyTodayNewsFeedCard> {
       final historyId = history['id'];
       final newsUrl = history['news_url'];
 
+      final profile = await client
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', currentUserId)
+          .maybeSingle();
+      final avatarUrl = profile?['avatar_url']?.toString();
+
       // 2. ニュース詳細を取得
       final newsData = await client
           .from('news')
@@ -1889,6 +1896,7 @@ class _MyTodayNewsFeedCardState extends State<_MyTodayNewsFeedCard> {
             'news_title': newsTitle,
             'news_thumbnail': newsThumbnail,
             'news_source': newsSource,
+            'avatar_url': avatarUrl,
             'like_count': likes.length,
             'comment_count': comments.length,
           };
@@ -1937,6 +1945,7 @@ class _MyTodayNewsFeedCardState extends State<_MyTodayNewsFeedCard> {
     final newsTitle = _myHistoryData['news_title'] as String;
     final newsThumbnail = _myHistoryData['news_thumbnail'] as String;
     final newsSource = _myHistoryData['news_source'] as String;
+    final avatarUrl = _myHistoryData['avatar_url']?.toString();
 
     return Container(
       width: double.infinity,
@@ -1949,15 +1958,11 @@ class _MyTodayNewsFeedCardState extends State<_MyTodayNewsFeedCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Color(0xFFE5EDF7),
-                child: Icon(Icons.person, color: Color(0xFF8799AF)),
-              ),
-              SizedBox(width: 13),
-              Expanded(
+              ProfileAvatar(radius: 20, imageUrl: avatarUrl),
+              const SizedBox(width: 13),
+              const Expanded(
                 child: Text(
                   'あなた',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
