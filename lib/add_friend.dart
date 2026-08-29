@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'news/news_home_page.dart';
+import 'profile_page.dart';
 import 'settings_page.dart';
 import 'testlogin/test_login_page.dart';
 import 'world_map_page.dart';
@@ -588,6 +590,13 @@ class _AddFriendPageState extends State<AddFriendPage> {
         unselectedItemColor: subTextColor,
         currentIndex: _selectedIndex,
         onTap: (index) {
+          if (index == 0) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const NewsHomePage()),
+            );
+            return;
+          }
+
           if (index == 1) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const WorldMapPage()),
@@ -598,6 +607,13 @@ class _AddFriendPageState extends State<AddFriendPage> {
           if (index == 3) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const SettingsPage()),
+            );
+            return;
+          }
+
+          if (index == 2) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ProfilePage()),
             );
             return;
           }
