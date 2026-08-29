@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'add_friend.dart';
 import 'friend_list_page.dart';
@@ -449,77 +450,100 @@ class _ProfilePageState extends State<ProfilePage> {
     ).showSnackBar(const SnackBar(content: Text('ピン留めを解除しました')));
   }
 
+  Future<void> _openPinnedNews(PinnedNews pin) async {
+    final uri = Uri.tryParse(pin.url);
+    if (uri == null || !uri.hasScheme) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('記事のURLが見つかりません')));
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ニュースサイトを開けませんでした')));
+    }
+  }
+
   Widget _buildPinCard(PinnedNews pin) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-      ),
-
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              pin.thumbnailUrl,
-              width: 72,
-              height: 72,
-              fit: BoxFit.cover,
-
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
+        onTap: () => _openPinnedNews(pin),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  pin.thumbnailUrl,
                   width: 72,
                   height: 72,
-                  color: const Color(0xFFE2E8F0),
-                  child: const Icon(
-                    Icons.image_outlined,
-                    color: Color(0xFF94A3B8),
-                  ),
-                );
-              },
-            ),
-          ),
+                  fit: BoxFit.cover,
 
-          const SizedBox(width: 14),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  pin.title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF334155),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 72,
+                      height: 72,
+                      color: const Color(0xFFE2E8F0),
+                      child: const Icon(
+                        Icons.image_outlined,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    );
+                  },
                 ),
+              ),
 
-                const SizedBox(height: 6),
+              const SizedBox(width: 14),
 
-                Text(
-                  pin.source.isNotEmpty
-                      ? pin.source
-                      : '${pin.pinnedAt.year}/${pin.pinnedAt.month.toString().padLeft(2, '0')}/${pin.pinnedAt.day.toString().padLeft(2, '0')}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF94A3B8),
-                  ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pin.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF334155),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    Text(
+                      pin.source.isNotEmpty
+                          ? pin.source
+                          : '${pin.pinnedAt.year}/${pin.pinnedAt.month.toString().padLeft(2, '0')}/${pin.pinnedAt.day.toString().padLeft(2, '0')}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded),
+                tooltip: 'ピン留めを解除',
+                color: const Color(0xFF64748B),
+                onPressed: () => _unpinNews(pin),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.close_rounded),
-            tooltip: 'ピン留めを解除',
-            color: const Color(0xFF64748B),
-            onPressed: () => _unpinNews(pin),
-          ),
-        ],
+        ),
       ),
     );
   }
