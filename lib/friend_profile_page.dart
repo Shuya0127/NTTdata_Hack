@@ -39,6 +39,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     Set<String> visitedCountries = {};
 
     // 追加テーブルが未作成の環境でも、基本プロフィールは表示する。
+    // ただし、RLS で読めない場合はログに残し、ユーザーには見えていないことを認識できるようにする。
     try {
       final rows = await client
           .from('pinned_news')
@@ -46,7 +47,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           .eq('user_id', widget.friendId)
           .order('pinned_at', ascending: false);
       pins = List<Map<String, dynamic>>.from(rows);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      debugPrint('フレンドのピン留め取得エラー: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
 
     try {
       final rows = await client
@@ -57,7 +61,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           .map((row) => row['country_code']?.toString().toLowerCase())
           .whereType<String>()
           .toSet();
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      debugPrint('フレンドの制覇国取得エラー: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
 
     return _FriendProfileData(
       userId: profile['user_id']?.toString() ?? widget.friendId,
@@ -169,7 +176,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                         maxScale: 5,
                         child: SimpleMap(
                           instructions: SMapWorld.instructions,
-                          defaultColor: const Color(0xFFF8FAFC),
+                          defaultColor: const Color(0xFFE2E8F0),
                           colors: {
                             for (final country in friend.visitedCountries)
                               country: const Color(0xFFFF9800),

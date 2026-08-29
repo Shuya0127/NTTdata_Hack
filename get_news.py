@@ -2,8 +2,10 @@ import os
 import requests
 from supabase import create_client, Client
 from dotenv import load_dotenv
-import firebase_admin
-from firebase_admin import credentials, messaging
+
+# Firebase関連はエラーになるため一時的にコメントアウトして無視します
+# import firebase_admin
+# from firebase_admin import credentials, messaging
 
 # 1. .envファイルから秘密情報を読み込む
 load_dotenv()
@@ -11,38 +13,18 @@ GUARDIAN_API_KEY = os.environ.get("GUARDIAN_API_KEY")
 NEWSAPI_KEY = os.environ.get("NEWSAPI_KEY")
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-FIREBASE_CREDENTIALS_PATH = os.environ.get(
-    "FIREBASE_CREDENTIALS_PATH", "firebase-service-account.json"
-)
 
 # 2. Supabaseに接続する
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 3. Firebaseに接続する(通知送信用)
-firebase_admin.initialize_app(
-    credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
-)
-
-# アプリ側でこのトピックを購読しているユーザー全員に通知が届く
-DAILY_NEWS_TOPIC = "daily_news"
-
+# Firebaseの接続設定も無視します
+# FIREBASE_CREDENTIALS_PATH = os.environ.get("FIREBASE_CREDENTIALS_PATH", "firebase-service-account.json")
+# firebase_admin.initialize_app(credentials.Certificate(FIREBASE_CREDENTIALS_PATH))
+# DAILY_NEWS_TOPIC = "daily_news"
 
 def send_daily_notification():
-    print("🔔 通知を送信中...")
-
-    message = messaging.Message(
-        notification=messaging.Notification(
-            title="今日のニュース",
-            body="新しいニュースが届きました。開いて確認しよう！",
-        ),
-        topic=DAILY_NEWS_TOPIC,
-    )
-
-    try:
-        response = messaging.send(message)
-        print(f"✅ 通知の送信成功: {response}")
-    except Exception as e:
-        print(f"❌ 通知の送信エラー: {e}")
+    print("🔔 Firebase設定がないため、通知の送信はスキップします")
+    pass
 
 # --------------------------------------------------
 # The Guardianから取得する関数
@@ -50,7 +32,6 @@ def send_daily_notification():
 def get_guardian_news():
     print("🌍 The Guardianからニュースを取得中...")
     
-    # 【変更点】show-fieldsに「thumbnail」を追加しました
     url = f"https://content.guardianapis.com/search?api-key={GUARDIAN_API_KEY}&show-fields=bodyText,thumbnail"
     response = requests.get(url)
     
@@ -68,7 +49,7 @@ def get_guardian_news():
                 "source": "The Guardian",
                 "published_at": article.get('webPublicationDate'),
                 "country": "GB",
-                "thumbnail_url": fields.get('thumbnail', '')  # 【追加】サムネイル画像URL
+                "thumbnail_url": fields.get('thumbnail', '')
             }
             
             try:
@@ -80,13 +61,13 @@ def get_guardian_news():
         print("❌ Guardianの取得に失敗しました。")
 
 # --------------------------------------------------
-# 【修正版】NewsAPIから取得する関数（確実に取得する）
+# 【修正版】NewsAPIから取得する関数（確実に国別に取得する）
 # --------------------------------------------------
-def get_newsapi_news(keyword="japan"):
-    print(f"🌍 NewsAPIからキーワード [{keyword}] のニュースを取得中...")
+def get_newsapi_news(country_code="jp"):
+    print(f"🌍 NewsAPIから国コード [{country_code.upper()}] のニュースを取得中...")
     
-    # 【変更点】top-headlinesではなく、everythingに変更してキーワードで検索
-    url = f"https://newsapi.org/v2/everything?q={keyword}&sortBy=publishedAt&apiKey={NEWSAPI_KEY}"
+    # top-headlinesに変更し、countryを指定
+    url = f"https://newsapi.org/v2/top-headlines?country={country_code}&apiKey={NEWSAPI_KEY}"
     
     response = requests.get(url)
     
@@ -94,10 +75,9 @@ def get_newsapi_news(keyword="japan"):
         data = response.json()
         articles = data.get('articles', [])
         
-        # 【追加】何件見つかったか分かりやすくprintで表示する
         print(f"👀 NewsAPIで {len(articles)} 件のニュースが見つかりました！")
         
-        # 取得件数が多いと時間がかかるので、最初の10件だけ保存するように制限（お好みで変更してください）
+        # 最初の10件だけ保存
         for article in articles[:10]:
             content_text = article.get('content') or article.get('description') or ''
             
@@ -107,7 +87,8 @@ def get_newsapi_news(keyword="japan"):
                 "content": content_text,
                 "source": article.get('source', {}).get('name', 'NewsAPI'),
                 "published_at": article.get('publishedAt'),
-                "country": "ANY",  # everythingエンドポイントには国指定がないため、ANYとしておきます
+                # ANYではなく、指定した国コードを大文字にして保存
+                "country": country_code.upper(),  
                 "thumbnail_url": article.get('urlToImage', '')
             }
             
@@ -119,25 +100,25 @@ def get_newsapi_news(keyword="japan"):
     else:
         print("❌ NewsAPIの取得に失敗しました。")
         print(f"ステータスコード: {response.status_code}")
-        print(f"詳細: {response.text}") # エラーの詳細も表示するようにしました
+        print(f"詳細: {response.text}")
+
 # --------------------------------------------------
 # 実行部分
 # --------------------------------------------------
 if __name__ == "__main__":
-    # Guardianのニュース取得
+    # Guardianのニュース取得（イギリス）
     get_guardian_news()
 
     print("-" * 40)
 
-    # 【修正】引数を keyword に変更します
-    get_newsapi_news(keyword="japan")
-
-    # ちなみに、keyword="technology" や keyword="anime" などに変えれば、
-    # 好きなジャンルのニュースを取ってくることもできます！
+    # NewsAPIで色々な国のニュースを取得
+    get_newsapi_news(country_code="jp") # 日本
+    get_newsapi_news(country_code="us") # アメリカ
+    get_newsapi_news(country_code="au") # オーストラリア
 
     print("-" * 40)
 
-    # 新しいニュースが届いたことをユーザーに通知
+    # 通知送信（今回はスキップされます）
     send_daily_notification()
 
     print("🎉 すべての処理が完了しました！")

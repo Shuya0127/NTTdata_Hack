@@ -301,10 +301,21 @@ class _NewsHomePageState extends State<NewsHomePage> {
           Supabase.instance.client.auth.currentUser?.id;
       if (currentUserId != null) {
         try {
+          // 閲覧履歴を保存
           await Supabase.instance.client.from('user_read_news').insert({
             'user_id': currentUserId,
             'news_url': randomNews['url']?.toString() ?? '',
           });
+
+          // 追加：ここで visited_countries テーブルにも国を保存する！
+          final countryCode = randomNews['country']?.toString() ?? 'ANY';
+          if (countryCode != 'ANY') {
+            await Supabase.instance.client.from('visited_countries').insert({
+              'user_id': currentUserId,
+              'country': countryCode,
+            });
+          }
+
           await _checkIfUserReadNewsToday();
           if (mounted) {
             setState(() => _feedRefreshVersion++);
